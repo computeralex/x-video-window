@@ -262,6 +262,16 @@
 
   function hideDecorativeMeta(root) {
     if (!root) return;
+    for (const child of Array.from(root.children || [])) {
+      if (child.tagName === "VIDEO" || isPlayerControl(child)) continue;
+      for (const section of Array.from(child.children || [])) {
+        if (isPlayerControl(section)) continue;
+        if (section.querySelector("button[aria-label], [aria-label='Seek slider'], [role='slider']")) {
+          continue;
+        }
+        section.classList.add("xvw-hide-meta");
+      }
+    }
     root.querySelectorAll("a, span, div, p, h1, h2, h3").forEach((el) => {
       if (isPlayerControl(el)) return;
       if (el.closest("button") || el.closest("[role='slider']") || el.closest("[aria-label='Seek slider']")) {
