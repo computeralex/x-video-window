@@ -97,29 +97,66 @@ body.toolbar-hidden:not(.playing) .stage {
   height: 100%;
 }
 
-.url-form {
+.toolbar-grow {
   flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
+  min-width: 8px;
+  -webkit-app-region: drag;
+}
+
+.open-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 16;
+}
+
+.open-overlay.hidden {
+  display: none;
+}
+
+.open-card {
+  background: #16181c;
+  border: 1px solid var(--bar-border);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  max-width: 480px;
+  width: min(480px, 100%);
+}
+
+.open-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.open-card p {
+  color: var(--muted);
+  margin: 0 0 14px;
 }
 
 #url-input {
-  flex: 1;
-  min-width: 80px;
-  height: 30px;
+  width: 100%;
+  height: 36px;
   border: 1px solid var(--bar-border);
   border-radius: 999px;
   background: #000;
   color: var(--text);
-  padding: 0 12px;
+  padding: 0 14px;
   outline: none;
   user-select: text;
 }
 
 #url-input:focus {
   border-color: var(--accent);
+}
+
+.open-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .icon-btn,
@@ -203,6 +240,7 @@ body.toolbar-hidden:not(.playing) .stage {
 .empty.hidden,
 .player.hidden,
 .help-overlay.hidden,
+.open-overlay.hidden,
 .toast.hidden {
   display: none;
 }

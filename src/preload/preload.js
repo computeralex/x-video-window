@@ -13,7 +13,8 @@ contextBridge.exposeInMainWorld("xvw", {
   setAlwaysOnTop: (value) => ipcRenderer.invoke("set-always-on-top", value),
   setCompact: (value) => ipcRenderer.invoke("set-compact", value),
   rememberUrl: (url) => ipcRenderer.invoke("remember-url", url),
-  fillVideo: () => ipcRenderer.invoke("fill-video"),
+  toggleFullscreen: () => ipcRenderer.invoke("toggle-fullscreen"),
+  setFullscreen: (value) => ipcRenderer.invoke("set-fullscreen", value),
   windowControl: (action) => ipcRenderer.invoke("window-control", action),
   onState: (callback) => {
     const listener = (_event, state) => callback(state);
@@ -29,11 +30,11 @@ contextBridge.exposeInMainWorld("xvw", {
   onToggleToolbar: (callback) => {
     ipcRenderer.on("toggle-toolbar", () => callback());
   },
-  onFocusUrl: (callback) => {
-    ipcRenderer.on("focus-url", () => callback());
+  onOpenVideoPrompt: (callback) => {
+    ipcRenderer.on("open-video-prompt", () => callback());
   },
-  onFillVideo: (callback) => {
-    ipcRenderer.on("fill-video", () => callback());
+  onFullscreen: (callback) => {
+    ipcRenderer.on("fullscreen-changed", (_event, value) => callback(value));
   },
   onSignInComplete: (callback) => {
     ipcRenderer.on("signin-complete", () => callback());

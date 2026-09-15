@@ -79,4 +79,10 @@ describe("parseXUrl", () => {
     const live = parseXUrl("https://x.com/i/broadcasts/1YqNPgeNyoLGv");
     assert.equal(live.ok, true);
   });
+
+  it("unwraps xvw: share / protocol links", () => {
+    const r = parseXUrl("xvw:https://x.com/i/status/1814440131505598541");
+    assert.equal(r.ok, true);
+    assert.equal(r.loadUrl, "https://x.com/i/status/1814440131505598541");
+  });
 });

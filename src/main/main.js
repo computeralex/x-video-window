@@ -21,6 +21,11 @@ const { loadStore, saveStore, sanitizeBounds } = require("./store");
 const { createLoginWindow } = require("./login-window");
 const { applySessionPermissions } = require("./permissions");
 const { editMenuTemplate } = require("./edit-menu");
+const {
+  CUSTOM_SCHEME,
+  parseIncoming,
+  firstIncomingFromArgv,
+} = require("./incoming-url");
 
 const PARTITION = "persist:x-session";
 
@@ -39,6 +44,8 @@ let loginSession = null;
 let state = null;
 let storePath = null;
 let saveTimer = null;
+let pendingIncoming = null;
+let maximizeFallback = false;
 const guardedGuests = new WeakSet();
 const insertedCssKeys = new WeakMap();
 
@@ -74,7 +81,104 @@ function publicState() {
     alwaysOnTop: Boolean(state?.alwaysOnTop),
     compact: state?.compact !== false,
     lastUrl: persistedLastUrl(state?.lastUrl),
+    fullscreen: isAppFullscreen(),
   };
+}
+
+function isAppFullscreen() {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  return Boolean(mainWindow.isFullScreen() || maximizeFallback);
+}
+
+function applyGuestTheater() {
+  if (!guestContents || guestContents.isDestroyed()) return;
+  guestContents
+    .executeJavaScript(
+      `window.__xvwFillVideo ? window.__xvwFillVideo() : true`,
+      true
+    )
+    .catch(() => {});
+}
+
+function sendFullscreen(on) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("fullscreen-changed", Boolean(on));
+  }
+  sendState();
+}
+
+function setAppFullscreen(on) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return { ok: false, error: "Window is not ready." };
+  }
+
+  const want = Boolean(on);
+  if (!want) {
+    if (mainWindow.isFullScreen()) mainWindow.setFullScreen(false);
+    if (maximizeFallback) {
+      maximizeFallback = false;
+      if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    }
+    sendFullscreen(false);
+    return { ok: true, fullscreen: false, mode: "os" };
+  }
+
+  // Native window fullscreen — reliable with the X webview. Guest
+  // requestFullscreen is flaky in Electron webviews (Linux especially).
+  mainWindow.setFullScreen(true);
+  applyGuestTheater();
+
+  if (mainWindow.isFullScreen()) {
+    sendFullscreen(true);
+    return { ok: true, fullscreen: true, mode: "os" };
+  }
+
+  // Some WMs apply fullscreen asynchronously; treat the request as success
+  // unless we can already see it failed and maximize as an in-window theater.
+  setTimeout(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isFullScreen()) {
+      sendFullscreen(true);
+      return;
+    }
+    maximizeFallback = true;
+    mainWindow.maximize();
+    applyGuestTheater();
+    sendFullscreen(true);
+  }, 400);
+
+  return { ok: true, fullscreen: true, mode: "os" };
+}
+
+function toggleAppFullscreen() {
+  return setAppFullscreen(!isAppFullscreen());
+}
+
+function deliverIncoming(parsed) {
+  if (!parsed?.ok || !parsed.loadUrl) return false;
+  if (isAuthUrl(parsed.loadUrl)) return false;
+  if (state) {
+    state.lastUrl = parsed.loadUrl;
+    persistSoon();
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("open-load-url", parsed);
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    return true;
+  }
+  pendingIncoming = parsed;
+  return true;
+}
+
+function registerProtocolClient() {
+  if (process.defaultApp) {
+    const appPath = path.resolve(process.argv[1] || ".");
+    app.setAsDefaultProtocolClient(CUSTOM_SCHEME, process.execPath, [appPath]);
+  } else {
+    app.setAsDefaultProtocolClient(CUSTOM_SCHEME);
+  }
 }
 
 async function removeFocusCss(contents) {
@@ -200,6 +304,11 @@ function createMenu() {
       label: "File",
       submenu: [
         {
+          label: "Open Video…",
+          accelerator: "CmdOrCtrl+L",
+          click: () => mainWindow?.webContents.send("open-video-prompt"),
+        },
+        {
           label: "Open from Clipboard",
           accelerator: "CmdOrCtrl+O",
           click: () => {
@@ -251,23 +360,8 @@ function createMenu() {
           },
         },
         {
-          label: "Fill video",
-          accelerator: "F8",
-          click: async () => {
-            if (!guestContents || guestContents.isDestroyed()) return;
-            try {
-              await guestContents.executeJavaScript(
-                `window.__xvwFillVideo ? window.__xvwFillVideo() : (() => {
-                  const v = document.querySelector("video");
-                  const r = v && (v.requestFullscreen || v.webkitRequestFullscreen);
-                  if (r) r.call(v);
-                })()`,
-                true
-              );
-            } catch {
-              // ignore
-            }
-          },
+          label: "Toggle Fullscreen",
+          click: () => toggleAppFullscreen(),
         },
         { type: "separator" },
         { role: "reload" },
@@ -302,6 +396,11 @@ function handleAccelerators(event, input) {
   if (ctrl && ["c", "v", "x", "a", "z", "y"].includes(String(input.key).toLowerCase())) {
     return;
   }
+  if (input.key === "Escape" && isAppFullscreen()) {
+    setAppFullscreen(false);
+    event.preventDefault();
+    return;
+  }
   if (input.key === "F1") {
     mainWindow.webContents.send("toggle-help");
     event.preventDefault();
@@ -311,11 +410,11 @@ function handleAccelerators(event, input) {
     event.preventDefault();
   }
   if (ctrl && input.key.toLowerCase() === "l") {
-    mainWindow.webContents.send("focus-url");
+    mainWindow.webContents.send("open-video-prompt");
     event.preventDefault();
   }
   if (input.key === "F8") {
-    mainWindow.webContents.send("fill-video");
+    toggleAppFullscreen();
     event.preventDefault();
   }
 }
@@ -356,6 +455,14 @@ function createWindow() {
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("before-input-event", handleAccelerators);
 
+  mainWindow.on("enter-full-screen", () => {
+    sendFullscreen(true);
+    applyGuestTheater();
+  });
+  mainWindow.on("leave-full-screen", () => {
+    maximizeFallback = false;
+    sendFullscreen(false);
+  });
   mainWindow.on("resize", persistSoon);
   mainWindow.on("move", persistSoon);
   mainWindow.on("close", () => {
@@ -367,6 +474,11 @@ function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
+    if (pendingIncoming) {
+      const incoming = pendingIncoming;
+      pendingIncoming = null;
+      deliverIncoming(incoming);
+    }
   });
 
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
@@ -431,35 +543,8 @@ function registerIpc() {
     persistSoon();
   });
 
-  ipcMain.handle("fill-video", async () => {
-    if (!guestContents || guestContents.isDestroyed()) {
-      return { ok: false, error: "Open a post first." };
-    }
-    try {
-      const result = await guestContents.executeJavaScript(
-        `window.__xvwFillVideo ? window.__xvwFillVideo() : (() => {
-          const video = document.querySelector("video");
-          if (!video) return { ok: false, error: "No video yet. Start playback, then click Fill." };
-          const req = video.requestFullscreen || video.webkitRequestFullscreen;
-          if (req) {
-            req.call(video);
-            return { ok: true, mode: "fullscreen" };
-          }
-          return { ok: true, mode: "theater" };
-        })()`,
-        true
-      );
-      if (!result || !result.ok) {
-        return {
-          ok: false,
-          error: result?.error || "No video yet. Start playback, then click Fill.",
-        };
-      }
-      return result;
-    } catch {
-      return { ok: false, error: "Could not fill the video." };
-    }
-  });
+  ipcMain.handle("toggle-fullscreen", () => toggleAppFullscreen());
+  ipcMain.handle("set-fullscreen", (_event, value) => setAppFullscreen(Boolean(value)));
 
   ipcMain.handle("window-control", (_event, action) => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -472,12 +557,38 @@ function registerIpc() {
   });
 }
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (_event, argv) => {
+    const incoming = firstIncomingFromArgv(argv);
+    if (incoming) deliverIncoming(incoming);
+    else if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  deliverIncoming(parseIncoming(url));
+});
+
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return;
   app.setName("X Video Window");
+  registerProtocolClient();
   storePath = path.join(app.getPath("userData"), "window-state.json");
   state = loadStore(storePath);
   if (state.lastUrl !== persistedLastUrl(state.lastUrl)) {
     state.lastUrl = "";
+  }
+  const launchIncoming = firstIncomingFromArgv(process.argv);
+  if (launchIncoming) {
+    state.lastUrl = launchIncoming.loadUrl;
+    pendingIncoming = launchIncoming;
   }
   persistNow();
 

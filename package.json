@@ -51,6 +51,14 @@
       "buildResources": "assets",
       "output": "dist"
     },
+    "protocols": [
+      {
+        "name": "X Video Window",
+        "schemes": [
+          "xvw"
+        ]
+      }
+    ],
     "mac": {
       "category": "public.app-category.video",
       "icon": "assets/icon.png",
@@ -60,7 +68,20 @@
       ],
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
-      "identity": null
+      "identity": null,
+      "extendInfo": {
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Web URL",
+            "CFBundleTypeRole": "Viewer",
+            "LSItemContentTypes": [
+              "public.url",
+              "public.url-name"
+            ],
+            "LSHandlerRank": "Alternate"
+          }
+        ]
+      }
     },
     "win": {
       "icon": "assets/icon.png",
@@ -76,6 +97,9 @@
     "linux": {
       "icon": "assets/icon.png",
       "category": "AudioVideo",
+      "desktop": {
+        "MimeType": "x-scheme-handler/xvw;"
+      },
       "target": [
         "AppImage",
         "zip"

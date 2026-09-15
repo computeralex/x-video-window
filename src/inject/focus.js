@@ -333,19 +333,10 @@
   window.__xvwFillVideo = function fillVideo() {
     const video = pickVideo();
     if (!video) return { ok: false, error: "No video yet. Start playback, then click Fill." };
+    // OS fullscreen is BrowserWindow.setFullScreen in the main process.
+    // Guest requestFullscreen is unreliable inside an Electron webview
+    // (especially Linux / X's overlay player). Theater fills the window.
     apply();
-    const req = video.requestFullscreen || video.webkitRequestFullscreen;
-    if (req) {
-      try {
-        const ret = req.call(video);
-        if (ret && typeof ret.then === "function") {
-          ret.catch(() => {});
-        }
-        return { ok: true, mode: "fullscreen" };
-      } catch {
-        // Fall through to theater layout (video already expanded).
-      }
-    }
     return { ok: true, mode: "theater" };
   };
 

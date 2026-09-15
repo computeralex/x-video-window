@@ -22,22 +22,16 @@
           />
         </svg>
       </button>
-      <form class="url-form" id="url-form" autocomplete="off">
-        <input
-          id="url-input"
-          type="text"
-          spellcheck="false"
-          placeholder="Paste an x.com or twitter.com post URL"
-          aria-label="X post URL"
-        />
-        <button type="submit" class="text-btn primary" id="open-btn">Open</button>
-      </form>
-      <button class="text-btn" id="paste-btn" title="Open the X link on your clipboard">
+      <button class="text-btn primary" id="open-video-btn" title="Open an X video URL">
+        Open video
+      </button>
+      <button class="text-btn" id="paste-btn" title="Open the X link on your clipboard (⌘/Ctrl+O)">
         Paste
       </button>
       <button class="text-btn" id="signin-btn" title="Sign in with your X account">
         Sign in
       </button>
+      <div class="toolbar-grow" aria-hidden="true"></div>
       <button class="icon-btn" id="pin-btn" title="Always on top" aria-label="Always on top" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
           <path
@@ -46,7 +40,7 @@
           />
         </svg>
       </button>
-      <button class="icon-btn" id="fill-btn" title="Fill window with video" aria-label="Fill window with video">
+      <button class="icon-btn" id="fill-btn" title="Fullscreen" aria-label="Fullscreen" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
           <path
             fill="currentColor"
@@ -80,15 +74,15 @@
             edge of this window — the player is not stuck in a fixed layout.
           </p>
           <ol>
-            <li>Copy a post URL from X.</li>
-            <li>Click <strong>Paste</strong> or drop it in the bar and press Open.</li>
+            <li>Copy a post or broadcast URL from X, or use <strong>Share via</strong> → Copy link.</li>
+            <li>Click <strong>Open video</strong> and paste the URL, or press ⌘/Ctrl+O to open the clipboard.</li>
             <li>Optional: <strong>Sign in</strong> opens a dedicated window for your own X account. The session stays on this computer.</li>
-            <li>Pin with <strong>Always on top</strong> if you want the player above other windows. Use <strong>Fill</strong> once the video is playing to expand it.</li>
+            <li>Pin with <strong>Always on top</strong> if you want the player above other windows. Use <strong>Fullscreen</strong> once the video is playing.</li>
           </ol>
           <p class="hint">
-            Keyboard: ⌘/Ctrl+L focus link · ⌘/Ctrl+O open clipboard ·
-            ⌘/Ctrl+Shift+T always on top · F8 fill video · F1 help · move to the
-            top edge for the toolbar (F11 locks it hidden)
+            Keyboard: ⌘/Ctrl+L open video · ⌘/Ctrl+O clipboard ·
+            ⌘/Ctrl+Shift+T always on top · F8 fullscreen · Esc exit fullscreen ·
+            F1 help · move to the top edge for the toolbar (F11 locks it hidden)
           </p>
         </div>
       </section>
@@ -98,6 +92,24 @@
         partition="persist:x-session"
       ></webview>
     </main>
+
+    <div class="open-overlay hidden" id="open-overlay" role="dialog" aria-modal="true" aria-labelledby="open-title">
+      <form class="open-card" id="url-form" autocomplete="off">
+        <h2 id="open-title">Open video</h2>
+        <p>Paste or type an x.com / twitter.com post or broadcast link.</p>
+        <input
+          id="url-input"
+          type="text"
+          spellcheck="false"
+          placeholder="https://x.com/i/status/…"
+          aria-label="X post URL"
+        />
+        <div class="open-actions">
+          <button type="button" class="text-btn" id="open-cancel">Cancel</button>
+          <button type="submit" class="text-btn primary" id="open-btn">Go</button>
+        </div>
+      </form>
+    </div>
 
     <div class="help-overlay hidden" id="help" role="dialog" aria-modal="true" aria-labelledby="help-title">
       <div class="help-card">
@@ -109,8 +121,9 @@
         <ul>
           <li><strong>Links:</strong> x.com and twitter.com status, video, and <code>/i/status</code> URLs.</li>
           <li><strong>Sign in:</strong> opens a dedicated window with your X account. The session is shared with the player; credentials are never scraped.</li>
-          <li><strong>Fill:</strong> after the video is playing, expand it to fill the window.</li>
+          <li><strong>Fullscreen:</strong> F8 or the corners button — true window fullscreen (Esc to exit). Video stays in the in-window theater used by Focus.</li>
           <li><strong>Focus:</strong> the focus toggle hides X’s sidebar, left nav, and reply thread so the video is easier to watch.</li>
+          <li><strong>Share / Open With:</strong> on macOS, register once (see README) so X links and <code>xvw:</code> URLs open here. Safari/Chrome Share via does not list this app unless you add a Shortcuts share action.</li>
           <li><strong>Private videos:</strong> stay signed in. Closing the app does not log you out.</li>
         </ul>
         <p class="hint">This app does not bypass X login or download videos from CDNs.</p>

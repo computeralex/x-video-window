@@ -19,8 +19,24 @@ function stripWrapping(text) {
     .replace(/[>'"“”‘’\])\s.,;]+$/g, "");
 }
 
+function unwrapCustomScheme(text) {
+  const s = String(text == null ? "" : text).trim();
+  if (!/^xvw:/i.test(s)) return s;
+  let rest = s.replace(/^xvw:\/\//i, "").replace(/^xvw:/i, "");
+  if (/^open\?/i.test(rest)) {
+    try {
+      const params = new URLSearchParams(rest.slice(rest.indexOf("?") + 1));
+      const nested = params.get("url") || params.get("link") || params.get("text");
+      if (nested) return nested;
+    } catch {
+      // keep rest
+    }
+  }
+  return rest;
+}
+
 function extractCandidate(text) {
-  const cleaned = stripWrapping(text);
+  const cleaned = stripWrapping(unwrapCustomScheme(text));
   if (!cleaned) return "";
 
   const urlMatch = cleaned.match(/https?:\/\/[^\s<>"']+/i);
@@ -126,6 +142,7 @@ function parseXUrl(input) {
 module.exports = {
   parseXUrl,
   extractCandidate,
+  unwrapCustomScheme,
   hostAllowed,
   statusLoadUrl,
 };

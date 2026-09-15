@@ -5,6 +5,9 @@ const els = {
   edgeHot: document.getElementById("edge-hot"),
   form: document.getElementById("url-form"),
   input: document.getElementById("url-input"),
+  openVideo: document.getElementById("open-video-btn"),
+  openCancel: document.getElementById("open-cancel"),
+  openOverlay: document.getElementById("open-overlay"),
   paste: document.getElementById("paste-btn"),
   signin: document.getElementById("signin-btn"),
   back: document.getElementById("back-btn"),
@@ -24,9 +27,11 @@ const state = {
   alwaysOnTop: false,
   compact: true,
   helpOpen: false,
+  openPrompt: false,
   toolbarHidden: false,
   playing: false,
   chromePinned: false,
+  fullscreen: false,
 };
 
 const CHROME_IDLE_MS = 1600;
@@ -45,12 +50,35 @@ function setPressed(button, on) {
   button.classList.toggle("on", on);
 }
 
+function setFullscreenUi(on) {
+  state.fullscreen = Boolean(on);
+  document.body.classList.toggle("fullscreen", state.fullscreen);
+  setPressed(els.fill, state.fullscreen);
+  els.fill.title = state.fullscreen ? "Exit fullscreen" : "Fullscreen";
+  els.fill.setAttribute("aria-label", els.fill.title);
+}
+
 function setHelpOpen(open) {
   state.helpOpen = open;
   els.help.classList.toggle("hidden", !open);
   document.body.classList.toggle("help-open", open);
   if (open) document.body.classList.add("chrome-visible");
   else if (state.playing) bumpChrome();
+}
+
+function setOpenPrompt(open) {
+  state.openPrompt = open;
+  els.openOverlay.classList.toggle("hidden", !open);
+  document.body.classList.toggle("open-prompt", open);
+  if (open) {
+    document.body.classList.add("chrome-visible");
+    window.requestAnimationFrame(() => {
+      els.input.focus();
+      els.input.select();
+    });
+  } else if (state.playing) {
+    bumpChrome();
+  }
 }
 
 function layoutPlayer() {
@@ -78,8 +106,12 @@ function setPlayingUi() {
   layoutPlayer();
 }
 
+function overlayBlocksChromeHide() {
+  return state.helpOpen || state.openPrompt || document.activeElement === els.input;
+}
+
 function setChromeVisible(visible) {
-  if (!state.playing || state.helpOpen || document.activeElement === els.input) {
+  if (!state.playing || overlayBlocksChromeHide()) {
     document.body.classList.add("chrome-visible");
     return;
   }
@@ -91,25 +123,22 @@ function setChromeVisible(visible) {
 }
 
 function bumpChrome() {
-  if (state.chromePinned && !state.helpOpen && document.activeElement !== els.input) {
-    // Top-edge / explicit bump unlocks a pinned-hidden toolbar.
+  if (state.chromePinned && !overlayBlocksChromeHide()) {
     state.chromePinned = false;
   }
   setChromeVisible(true);
   window.clearTimeout(chromeTimer);
   chromeTimer = window.setTimeout(() => {
-    if (!state.playing || state.helpOpen || document.activeElement === els.input) return;
+    if (!state.playing || overlayBlocksChromeHide()) return;
     setChromeVisible(false);
   }, CHROME_IDLE_MS);
 }
 
-function showPlayer(url, addressBarValue) {
+function showPlayer(url) {
   els.empty.classList.add("hidden");
   els.player.classList.remove("hidden");
   setPlayingUi();
-  if (addressBarValue != null) {
-    els.input.value = addressBarValue;
-  }
+  if (url && els.input) els.input.value = url;
   if (els.player.getAttribute("src") !== url) {
     els.player.setAttribute("src", url);
   }
@@ -121,7 +150,8 @@ async function openFromText(text) {
     showToast(result.error || "Could not open that link.");
     return false;
   }
-  showPlayer(result.loadUrl, result.loadUrl);
+  setOpenPrompt(false);
+  showPlayer(result.loadUrl);
   return true;
 }
 
@@ -130,13 +160,20 @@ els.form.addEventListener("submit", (event) => {
   openFromText(els.input.value);
 });
 
+els.openVideo.addEventListener("click", () => setOpenPrompt(true));
+els.openCancel.addEventListener("click", () => setOpenPrompt(false));
+els.openOverlay.addEventListener("click", (event) => {
+  if (event.target === els.openOverlay) setOpenPrompt(false);
+});
+
 els.paste.addEventListener("click", async () => {
   const result = await window.xvw.pasteAndOpen();
   if (!result.ok) {
     showToast(result.error || "Clipboard does not contain an X link.");
     return;
   }
-  showPlayer(result.loadUrl, result.loadUrl);
+  setOpenPrompt(false);
+  showPlayer(result.loadUrl);
 });
 
 els.signin.addEventListener("click", async () => {
@@ -159,23 +196,12 @@ els.pin.addEventListener("click", async () => {
 });
 
 els.fill.addEventListener("click", async () => {
-  try {
-    const result = await els.player.executeJavaScript(
-      `window.__xvwFillVideo ? window.__xvwFillVideo() : (() => {
-        const video = document.querySelector("video");
-        if (!video) return { ok: false };
-        const req = video.requestFullscreen || video.webkitRequestFullscreen;
-        if (!req) return { ok: true, mode: "theater" };
-        req.call(video);
-        return { ok: true, mode: "fullscreen" };
-      })()`
-    );
-    if (!result || !result.ok) {
-      showToast(result?.error || "No video yet. Start playback, then click Fill.");
-    }
-  } catch {
-    showToast("Could not fill the video.");
+  const result = await window.xvw.toggleFullscreen();
+  if (!result?.ok) {
+    showToast(result?.error || "Could not toggle fullscreen.");
+    return;
   }
+  setFullscreenUi(Boolean(result.fullscreen));
 });
 
 els.compact.addEventListener("click", async () => {
@@ -200,12 +226,32 @@ els.winControls.addEventListener("click", (event) => {
   if (action) window.xvw.windowControl(action);
 });
 
+document.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+});
+
+document.addEventListener("drop", (event) => {
+  event.preventDefault();
+  const uri = event.dataTransfer?.getData("text/uri-list") || "";
+  const text = event.dataTransfer?.getData("text/plain") || "";
+  const firstUri = uri.split(/\r?\n/).find((line) => line && !line.startsWith("#"));
+  const candidate = firstUri || text;
+  if (candidate) openFromText(candidate);
+});
+
 document.addEventListener("keydown", (event) => {
   const meta = event.metaKey || event.ctrlKey;
 
   if (event.key === "Escape") {
     if (state.helpOpen) {
       setHelpOpen(false);
+      event.preventDefault();
+    } else if (state.openPrompt) {
+      setOpenPrompt(false);
+      event.preventDefault();
+    } else if (state.fullscreen) {
+      window.xvw.setFullscreen(false);
       event.preventDefault();
     } else if (state.playing && !document.body.classList.contains("chrome-visible")) {
       bumpChrome();
@@ -225,9 +271,7 @@ document.addEventListener("keydown", (event) => {
   }
 
   if (meta && event.key.toLowerCase() === "l") {
-    bumpChrome();
-    els.input.focus();
-    els.input.select();
+    setOpenPrompt(true);
     event.preventDefault();
   }
 
@@ -264,7 +308,7 @@ els.player.addEventListener("dom-ready", () => {
 
 els.player.addEventListener("did-navigate", (event) => {
   if (event.url && event.url !== "about:blank") {
-    els.input.value = event.url;
+    if (els.input) els.input.value = event.url;
     window.xvw.rememberUrl(event.url);
   }
   injectFocus();
@@ -272,7 +316,7 @@ els.player.addEventListener("did-navigate", (event) => {
 
 els.player.addEventListener("did-navigate-in-page", (event) => {
   if (event.url && event.url !== "about:blank") {
-    els.input.value = event.url;
+    if (els.input) els.input.value = event.url;
     window.xvw.rememberUrl(event.url);
   }
   injectFocus();
@@ -297,7 +341,7 @@ async function boot() {
     els.winControls.hidden = false;
   }
 
-  let initial = { alwaysOnTop: false, compact: true, lastUrl: "" };
+  let initial = { alwaysOnTop: false, compact: true, lastUrl: "", fullscreen: false };
   try {
     initial = await window.xvw.getState();
   } catch {
@@ -305,20 +349,25 @@ async function boot() {
   }
   setPressed(els.pin, Boolean(initial.alwaysOnTop));
   setPressed(els.compact, initial.compact !== false);
+  setFullscreenUi(Boolean(initial.fullscreen));
   const restoreUrl = initial.lastUrl || "";
   if (restoreUrl && !(await window.xvw.isAuthUrl(restoreUrl))) {
-    showPlayer(restoreUrl, restoreUrl);
+    showPlayer(restoreUrl);
   }
 
   window.xvw.onState((next) => {
     if (typeof next.alwaysOnTop === "boolean") setPressed(els.pin, next.alwaysOnTop);
     if (typeof next.compact === "boolean") setPressed(els.compact, next.compact);
+    if (typeof next.fullscreen === "boolean") setFullscreenUi(next.fullscreen);
   });
 
   window.xvw.onOpenLoadUrl((result) => {
     if (!result?.ok || !result.loadUrl) return;
     window.xvw.isAuthUrl(result.loadUrl).then((auth) => {
-      if (!auth) showPlayer(result.loadUrl, result.loadUrl);
+      if (!auth) {
+        setOpenPrompt(false);
+        showPlayer(result.loadUrl);
+      }
     });
   });
 
@@ -332,11 +381,8 @@ async function boot() {
       document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
     }
   });
-  window.xvw.onFocusUrl(() => {
-    bumpChrome();
-    els.input.focus();
-    els.input.select();
-  });
+  window.xvw.onOpenVideoPrompt(() => setOpenPrompt(true));
+  window.xvw.onFullscreen((value) => setFullscreenUi(value));
 
   document.addEventListener("mousemove", (event) => {
     if (!state.playing) return;
@@ -353,9 +399,8 @@ async function boot() {
     document.body.classList.add("chrome-visible");
   });
   els.input.addEventListener("blur", () => {
-    if (state.playing) bumpChrome();
+    if (state.playing && !state.openPrompt) bumpChrome();
   });
-  window.xvw.onFillVideo(() => els.fill.click());
   window.xvw.onSignInComplete(() => {
     showToast("Signed in. Session saved on this computer.");
     try {
