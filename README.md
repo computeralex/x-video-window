@@ -74,6 +74,7 @@ Your session lives in Electron’s `persist:x-session` partition under this app�
 | ⌘/Ctrl+L | Focus the URL bar |
 | ⌘/Ctrl+O | Open the X link on the clipboard |
 | ⌘/Ctrl+Shift+T | Toggle always on top |
+| F8 | Fill video |
 | F1 | Help |
 | F11 | Hide / show the toolbar |
 | Esc | Close help or show the toolbar again |
