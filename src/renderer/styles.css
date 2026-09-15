@@ -11,7 +11,7 @@
   --btn: #1e2328;
   --btn-hover: #2a3138;
   --radius: 8px;
-  --toolbar-h: 48px;
+  --toolbar-h: 42px;
 }
 
 * {
@@ -53,11 +53,47 @@ body:not(.mac) .traffic-spacer {
   -webkit-app-region: no-drag;
 }
 
-body.toolbar-hidden .toolbar {
+.edge-hot {
   display: none;
 }
 
-body.toolbar-hidden .stage {
+body.playing .stage {
+  height: 100%;
+}
+
+body.playing .toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 12;
+  background: linear-gradient(to bottom, rgba(8, 8, 8, 0.88), rgba(8, 8, 8, 0.35) 80%, transparent);
+  border-bottom: none;
+  transform: translateY(-110%);
+  transition: transform 0.18s ease;
+  pointer-events: none;
+}
+
+body.playing.chrome-visible .toolbar {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+body.playing .edge-hot {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 16px;
+  z-index: 14;
+}
+
+body.toolbar-hidden:not(.playing) .toolbar {
+  display: none;
+}
+
+body.toolbar-hidden:not(.playing) .stage {
   height: 100%;
 }
 

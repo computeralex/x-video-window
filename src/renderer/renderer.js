@@ -2,6 +2,7 @@
 
 const els = {
   toolbar: document.getElementById("toolbar"),
+  edgeHot: document.getElementById("edge-hot"),
   form: document.getElementById("url-form"),
   input: document.getElementById("url-input"),
   paste: document.getElementById("paste-btn"),
@@ -24,9 +25,13 @@ const state = {
   compact: true,
   helpOpen: false,
   toolbarHidden: false,
+  playing: false,
+  chromePinned: false,
 };
 
+const CHROME_IDLE_MS = 1600;
 let toastTimer = 0;
+let chromeTimer = 0;
 
 function showToast(message) {
   els.toast.textContent = message;
@@ -44,6 +49,8 @@ function setHelpOpen(open) {
   state.helpOpen = open;
   els.help.classList.toggle("hidden", !open);
   document.body.classList.toggle("help-open", open);
+  if (open) document.body.classList.add("chrome-visible");
+  else if (state.playing) bumpChrome();
 }
 
 function layoutPlayer() {
@@ -55,10 +62,51 @@ function layoutPlayer() {
   els.player.style.height = `${height}px`;
 }
 
+function isPlaying() {
+  return Boolean(els.player && !els.player.classList.contains("hidden"));
+}
+
+function setPlayingUi() {
+  state.playing = isPlaying();
+  document.body.classList.toggle("playing", state.playing);
+  if (!state.playing) {
+    document.body.classList.add("chrome-visible");
+    layoutPlayer();
+    return;
+  }
+  bumpChrome();
+  layoutPlayer();
+}
+
+function setChromeVisible(visible) {
+  if (!state.playing || state.helpOpen || document.activeElement === els.input) {
+    document.body.classList.add("chrome-visible");
+    return;
+  }
+  if (state.chromePinned && !visible) {
+    document.body.classList.remove("chrome-visible");
+    return;
+  }
+  document.body.classList.toggle("chrome-visible", visible);
+}
+
+function bumpChrome() {
+  if (state.chromePinned && !state.helpOpen && document.activeElement !== els.input) {
+    // Top-edge / explicit bump unlocks a pinned-hidden toolbar.
+    state.chromePinned = false;
+  }
+  setChromeVisible(true);
+  window.clearTimeout(chromeTimer);
+  chromeTimer = window.setTimeout(() => {
+    if (!state.playing || state.helpOpen || document.activeElement === els.input) return;
+    setChromeVisible(false);
+  }, CHROME_IDLE_MS);
+}
+
 function showPlayer(url, addressBarValue) {
   els.empty.classList.add("hidden");
   els.player.classList.remove("hidden");
-  layoutPlayer();
+  setPlayingUi();
   if (addressBarValue != null) {
     els.input.value = addressBarValue;
   }
@@ -159,20 +207,25 @@ document.addEventListener("keydown", (event) => {
     if (state.helpOpen) {
       setHelpOpen(false);
       event.preventDefault();
-    } else if (state.toolbarHidden) {
-      document.body.classList.remove("toolbar-hidden");
-      state.toolbarHidden = false;
+    } else if (state.playing && !document.body.classList.contains("chrome-visible")) {
+      bumpChrome();
       event.preventDefault();
     }
   }
 
   if (event.key === "F11") {
-    state.toolbarHidden = !state.toolbarHidden;
-    document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
+    if (state.playing) {
+      state.chromePinned = true;
+      document.body.classList.remove("chrome-visible");
+    } else {
+      state.toolbarHidden = !state.toolbarHidden;
+      document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
+    }
     event.preventDefault();
   }
 
   if (meta && event.key.toLowerCase() === "l") {
+    bumpChrome();
     els.input.focus();
     els.input.select();
     event.preventDefault();
@@ -271,12 +324,36 @@ async function boot() {
 
   window.xvw.onToggleHelp(() => setHelpOpen(!state.helpOpen));
   window.xvw.onToggleToolbar(() => {
-    state.toolbarHidden = !state.toolbarHidden;
-    document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
+    if (state.playing) {
+      state.chromePinned = true;
+      document.body.classList.remove("chrome-visible");
+    } else {
+      state.toolbarHidden = !state.toolbarHidden;
+      document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
+    }
   });
   window.xvw.onFocusUrl(() => {
+    bumpChrome();
     els.input.focus();
     els.input.select();
+  });
+
+  document.addEventListener("mousemove", (event) => {
+    if (!state.playing) return;
+    if (event.clientY <= 16) bumpChrome();
+  });
+  els.toolbar.addEventListener("mousemove", () => {
+    if (state.playing) bumpChrome();
+  });
+  els.edgeHot.addEventListener("mouseenter", () => bumpChrome());
+  els.player.addEventListener("ipc-message", (event) => {
+    if (event.channel === "xvw-activity") bumpChrome();
+  });
+  els.input.addEventListener("focus", () => {
+    document.body.classList.add("chrome-visible");
+  });
+  els.input.addEventListener("blur", () => {
+    if (state.playing) bumpChrome();
   });
   window.xvw.onFillVideo(() => els.fill.click());
   window.xvw.onSignInComplete(() => {

@@ -7,11 +7,11 @@ X’s browser UI keeps the player in a fixed layout. This app is a dedicated win
 ## Features
 
 - Paste `x.com` or `twitter.com` status / video / **broadcast** links (also `/i/status/…`, `/i/broadcasts/…`, `/video/1`, and legacy `/i/videos/tweet/…` URLs)
-- Freely resizable window; last size and position are remembered — with Focus on, the playing video grows with the window (`object-fit: contain`)
+- Cinema-style player: video is edge-to-edge; the slim toolbar and X playback controls appear on hover (or the top edge) and hide after a short idle
 - Optional **Always on top**
 - **Fill** requests fullscreen on the `<video>`, or falls back to the same in-window theater layout used by Focus (works on broadcasts too)
 - **Sign in** opens a dedicated window (not the video webview) using the same local session, so X’s login UI is not covered by player CSS. Paste works in that window (Edit → Paste, right-click Paste, or ⌘/Ctrl+V) including the password field
-- Focus mode hides X’s sidebar, chat rail, left nav, and reply thread so status videos and live broadcasts fill the player. Playback controls (mute, volume, play, scrubber) stay on the video overlay — you do not turn Focus off to unmute
+- Focus mode hides X’s sidebar, chat rail, left nav, and reply thread so status videos and live broadcasts fill the player. Hover the video for mute/volume/play — you do not turn Focus off to unmute
 - Open from clipboard, Back, in-app help
 - Stays on X-related sites (and the hosts needed for login, captcha, and video CDNs)
 
@@ -79,7 +79,7 @@ Your session lives in Electron’s `persist:x-session` partition under this app�
 | ⌘/Ctrl+Shift+T | Toggle always on top |
 | F8 | Fill video |
 | F1 | Help |
-| F11 | Hide / show the toolbar |
+| F11 | Lock the toolbar hidden (move to the top edge to show it again) |
 | Esc | Close help or show the toolbar again |
 
 ## Security

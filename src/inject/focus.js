@@ -100,7 +100,8 @@
       html.xvw-theater .xvw-player-root > :not(video) {
         z-index: 2 !important;
       }
-      html.xvw-theater .xvw-hide-chrome {
+      html.xvw-theater .xvw-hide-chrome,
+      html.xvw-theater .xvw-hide-meta {
         display: none !important;
       }
       html.xvw-theater .xvw-neutralize {
@@ -237,6 +238,7 @@
     document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
     document.querySelectorAll(".xvw-neutralize").forEach((n) => n.classList.remove("xvw-neutralize"));
     document.querySelectorAll("video.xvw-video").forEach((n) => n.classList.remove("xvw-video"));
+    document.querySelectorAll(".xvw-hide-meta").forEach((n) => n.classList.remove("xvw-hide-meta"));
   }
 
   function hideNonVideoBranches(video) {
@@ -254,6 +256,26 @@
         const style = window.getComputedStyle(child);
         if (style.position === "absolute" || style.position === "fixed") continue;
         child.classList.add("xvw-hide-chrome");
+      }
+    });
+  }
+
+  function hideDecorativeMeta(root) {
+    if (!root) return;
+    root.querySelectorAll("a, span, div, p, h1, h2, h3").forEach((el) => {
+      if (isPlayerControl(el)) return;
+      if (el.closest("button") || el.closest("[role='slider']") || el.closest("[aria-label='Seek slider']")) {
+        return;
+      }
+      const text = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (!text) return;
+      if (
+        /^LIVE$/i.test(text) ||
+        /^\d[\d.,]*\s*[KMB]?\s*views$/i.test(text) ||
+        /^@\w+$/.test(text) ||
+        /scan to get the app/i.test(text)
+      ) {
+        el.classList.add("xvw-hide-meta");
       }
     });
   }
@@ -278,6 +300,7 @@
       el = el.parentElement;
     }
     hideNonVideoBranches(video);
+    hideDecorativeMeta(root);
     return true;
   }
 

@@ -491,7 +491,7 @@ app.whenReady().then(() => {
       webPreferences.contextIsolation = true;
       webPreferences.sandbox = true;
       webPreferences.javascript = true;
-      delete webPreferences.preload;
+      webPreferences.preload = path.join(__dirname, "../preload/guest-preload.js");
       webPreferences.partition = PARTITION;
       const src = params.src || "";
       if (src && src !== "about:blank" && !isAllowedNavigation(src)) {
