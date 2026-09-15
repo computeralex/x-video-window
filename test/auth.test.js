@@ -55,6 +55,17 @@ describe("isSignedInLanding", () => {
   });
 });
 
+describe("persistedLastUrl", () => {
+  const { persistedLastUrl } = require("../src/main/auth");
+
+  it("strips auth URLs and keeps status URLs", () => {
+    assert.equal(persistedLastUrl("https://x.com/i/jf/onboarding/web?mode=login"), "");
+    assert.equal(persistedLastUrl("https://x.com/i/flow/login"), "");
+    assert.equal(persistedLastUrl("https://x.com/i/status/1"), "https://x.com/i/status/1");
+    assert.equal(persistedLastUrl(""), "");
+  });
+});
+
 describe("isAuthPath", () => {
   it("matches /i/jf/ and /i/flow/ pathnames", () => {
     assert.equal(isAuthPath("/i/jf/onboarding/web", "?mode=login"), true);

@@ -230,8 +230,9 @@ async function boot() {
   }
   setPressed(els.pin, Boolean(initial.alwaysOnTop));
   setPressed(els.compact, initial.compact !== false);
-  if (initial.lastUrl) {
-    showPlayer(initial.lastUrl, initial.lastUrl);
+  const restoreUrl = initial.lastUrl || "";
+  if (restoreUrl && !(await window.xvw.isAuthUrl(restoreUrl))) {
+    showPlayer(restoreUrl, restoreUrl);
   }
 
   window.xvw.onState((next) => {
@@ -240,7 +241,10 @@ async function boot() {
   });
 
   window.xvw.onOpenLoadUrl((result) => {
-    if (result?.ok && result.loadUrl) showPlayer(result.loadUrl, result.loadUrl);
+    if (!result?.ok || !result.loadUrl) return;
+    window.xvw.isAuthUrl(result.loadUrl).then((auth) => {
+      if (!auth) showPlayer(result.loadUrl, result.loadUrl);
+    });
   });
 
   window.xvw.onToggleHelp(() => setHelpOpen(!state.helpOpen));

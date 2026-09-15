@@ -16,7 +16,7 @@ const {
 
 const { parseXUrl } = require("./parse-url");
 const { isAllowedNavigation } = require("./allowed");
-const { isAuthUrl } = require("./auth");
+const { isAuthUrl, persistedLastUrl } = require("./auth");
 const { loadStore, saveStore, sanitizeBounds } = require("./store");
 const { createLoginWindow } = require("./login-window");
 
@@ -71,7 +71,7 @@ function publicState() {
   return {
     alwaysOnTop: Boolean(state?.alwaysOnTop),
     compact: state?.compact !== false,
-    lastUrl: state?.lastUrl || "",
+    lastUrl: persistedLastUrl(state?.lastUrl),
   };
 }
 
@@ -411,10 +411,16 @@ function registerIpc() {
   });
 
   ipcMain.handle("remember-url", (_event, url) => {
-    if (typeof url === "string" && isAllowedNavigation(url) && !isAuthUrl(url)) {
-      state.lastUrl = url;
-      persistSoon();
+    if (typeof url !== "string") return;
+    if (!isAllowedNavigation(url) || isAuthUrl(url)) {
+      if (isAuthUrl(state.lastUrl)) {
+        state.lastUrl = "";
+        persistSoon();
+      }
+      return;
     }
+    state.lastUrl = url;
+    persistSoon();
   });
 
   ipcMain.handle("fill-video", async () => {
@@ -460,6 +466,10 @@ app.whenReady().then(() => {
   app.setName("X Video Window");
   storePath = path.join(app.getPath("userData"), "window-state.json");
   state = loadStore(storePath);
+  if (state.lastUrl !== persistedLastUrl(state.lastUrl)) {
+    state.lastUrl = "";
+  }
+  persistNow();
 
   const xSession = session.fromPartition(PARTITION);
   xSession.setUserAgent(chromeUserAgent());

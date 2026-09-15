@@ -37,4 +37,22 @@ describe("store", () => {
     assert.equal(off.width, 700);
     assert.equal(off.x, undefined);
   });
+
+  it("drops auth/onboarding lastUrl so login is not restored on boot", () => {
+    const file = path.join(os.tmpdir(), `xvw-state-auth-${Date.now()}.json`);
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        bounds: { width: 800, height: 600 },
+        lastUrl: "https://x.com/i/jf/onboarding/web?mode=login",
+      }),
+      "utf8"
+    );
+    const loaded = loadStore(file);
+    assert.equal(loaded.lastUrl, "");
+    saveStore(file, { ...loaded, lastUrl: "https://x.com/i/flow/login" });
+    const saved = JSON.parse(fs.readFileSync(file, "utf8"));
+    assert.equal(saved.lastUrl, "");
+    fs.unlinkSync(file);
+  });
 });

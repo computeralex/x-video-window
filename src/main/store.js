@@ -3,6 +3,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const { persistedLastUrl } = require("./auth");
+
 const DEFAULTS = {
   bounds: { width: 960, height: 640, x: undefined, y: undefined },
   alwaysOnTop: false,
@@ -17,7 +19,7 @@ function loadStore(filePath) {
       bounds: { ...DEFAULTS.bounds, ...(parsed.bounds || {}) },
       alwaysOnTop: Boolean(parsed.alwaysOnTop),
       compact: parsed.compact !== false,
-      lastUrl: typeof parsed.lastUrl === "string" ? parsed.lastUrl : "",
+      lastUrl: persistedLastUrl(typeof parsed.lastUrl === "string" ? parsed.lastUrl : ""),
     };
   } catch {
     return { ...DEFAULTS, bounds: { ...DEFAULTS.bounds } };
@@ -31,7 +33,7 @@ function saveStore(filePath, state) {
     bounds: state.bounds,
     alwaysOnTop: Boolean(state.alwaysOnTop),
     compact: state.compact !== false,
-    lastUrl: state.lastUrl || "",
+    lastUrl: persistedLastUrl(state.lastUrl),
   };
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }

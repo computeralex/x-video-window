@@ -76,10 +76,17 @@ function isSignedInLanding(urlString) {
   return isX;
 }
 
+function persistedLastUrl(urlString) {
+  if (typeof urlString !== "string" || !urlString) return "";
+  if (isAuthUrl(urlString)) return "";
+  return urlString;
+}
+
 module.exports = {
   isAuthUrl,
   isAuthPath,
   isAuthHost,
   isSignedInLanding,
+  persistedLastUrl,
   AUTH_PATH_RE,
 };
