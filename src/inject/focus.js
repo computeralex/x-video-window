@@ -83,16 +83,27 @@
         flex: 1 1 auto !important;
         transform: none !important;
       }
-      html.xvw-theater .xvw-player-root video {
-        width: 100% !important;
-        height: 100% !important;
+      html.xvw-theater .xvw-player-root video,
+      html.xvw-theater video.xvw-video {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
         max-width: none !important;
         max-height: none !important;
         object-fit: contain !important;
         background: #000 !important;
+        z-index: 2147483646 !important;
+        transform: none !important;
       }
       html.xvw-theater .xvw-hide-chrome {
         display: none !important;
+      }
+      html.xvw-theater .xvw-neutralize {
+        transform: none !important;
+        filter: none !important;
+        perspective: none !important;
+        contain: none !important;
       }
     `
       : "";
@@ -204,6 +215,26 @@
     document.querySelectorAll(".xvw-player-root").forEach((n) => n.classList.remove("xvw-player-root"));
     document.querySelectorAll(".xvw-fill-box").forEach((n) => n.classList.remove("xvw-fill-box"));
     document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
+    document.querySelectorAll(".xvw-neutralize").forEach((n) => n.classList.remove("xvw-neutralize"));
+    document.querySelectorAll("video.xvw-video").forEach((n) => n.classList.remove("xvw-video"));
+  }
+
+  function hideNonVideoBranches(video) {
+    const keep = new Set();
+    let node = video;
+    while (node) {
+      keep.add(node);
+      node = node.parentElement;
+    }
+    keep.forEach((el) => {
+      for (const child of Array.from(el.children || [])) {
+        if (keep.has(child)) continue;
+        if (child.querySelector && child.querySelector("video")) continue;
+        const style = window.getComputedStyle(child);
+        if (style.position === "absolute" || style.position === "fixed") continue;
+        child.classList.add("xvw-hide-chrome");
+      }
+    });
   }
 
   function applyTheater() {
@@ -217,28 +248,15 @@
     if (!root) return false;
 
     document.documentElement.classList.add("xvw-theater");
+    video.classList.add("xvw-video");
     root.classList.add("xvw-player-root");
     let el = video;
-    while (el && el !== document.body) {
+    while (el && el !== document.documentElement) {
       el.classList.add("xvw-fill-box");
-      if (el === root) break;
+      el.classList.add("xvw-neutralize");
       el = el.parentElement;
     }
-
-    let col = root;
-    for (let i = 0; i < 12 && col && col !== document.body; i++) {
-      const parent = col.parentElement;
-      if (!parent) break;
-      for (const sib of parent.children) {
-        if (sib === col || sib.contains(root) || sib.querySelector("video")) continue;
-        const r = sib.getBoundingClientRect();
-        if (r.width >= 80 && r.height >= 40) {
-          sib.classList.add("xvw-hide-chrome");
-        }
-      }
-      if (parent.id === "react-root" || parent === document.body) break;
-      col = parent;
-    }
+    hideNonVideoBranches(video);
     return true;
   }
 
@@ -290,6 +308,6 @@
 
   const obs = new MutationObserver(schedule);
   obs.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener("resize", schedule);
+  window.addEventListener("resize", apply);
   apply();
 })();
