@@ -1,0 +1,200 @@
+"use strict";
+
+const SIGN_IN_URL = "https://x.com/i/flow/login";
+
+const els = {
+  toolbar: document.getElementById("toolbar"),
+  form: document.getElementById("url-form"),
+  input: document.getElementById("url-input"),
+  paste: document.getElementById("paste-btn"),
+  signin: document.getElementById("signin-btn"),
+  back: document.getElementById("back-btn"),
+  pin: document.getElementById("pin-btn"),
+  compact: document.getElementById("compact-btn"),
+  helpBtn: document.getElementById("help-btn"),
+  help: document.getElementById("help"),
+  helpClose: document.getElementById("help-close"),
+  empty: document.getElementById("empty"),
+  player: document.getElementById("player"),
+  toast: document.getElementById("toast"),
+  winControls: document.getElementById("win-controls"),
+};
+
+const state = {
+  alwaysOnTop: false,
+  compact: true,
+  helpOpen: false,
+  toolbarHidden: false,
+};
+
+let toastTimer = 0;
+
+function showToast(message) {
+  els.toast.textContent = message;
+  els.toast.classList.remove("hidden");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => els.toast.classList.add("hidden"), 2800);
+}
+
+function setPressed(button, on) {
+  button.setAttribute("aria-pressed", on ? "true" : "false");
+  button.classList.toggle("on", on);
+}
+
+function setHelpOpen(open) {
+  state.helpOpen = open;
+  els.help.classList.toggle("hidden", !open);
+  document.body.classList.toggle("help-open", open);
+}
+
+function showPlayer(url, addressBarValue) {
+  els.empty.classList.add("hidden");
+  els.player.classList.remove("hidden");
+  if (addressBarValue != null) {
+    els.input.value = addressBarValue;
+  }
+  if (els.player.getAttribute("src") !== url) {
+    els.player.setAttribute("src", url);
+  }
+}
+
+async function openFromText(text) {
+  const result = await window.xvw.openUrl(text);
+  if (!result.ok) {
+    showToast(result.error || "Could not open that link.");
+    return false;
+  }
+  showPlayer(result.loadUrl, result.loadUrl);
+  return true;
+}
+
+els.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  openFromText(els.input.value);
+});
+
+els.paste.addEventListener("click", async () => {
+  const result = await window.xvw.pasteAndOpen();
+  if (!result.ok) {
+    showToast(result.error || "Clipboard does not contain an X link.");
+    return;
+  }
+  showPlayer(result.loadUrl, result.loadUrl);
+});
+
+els.signin.addEventListener("click", async () => {
+  const result = await window.xvw.openUrl(SIGN_IN_URL);
+  if (!result.ok) {
+    showToast(result.error || "Could not open sign-in.");
+    return;
+  }
+  showPlayer(result.loadUrl, result.loadUrl);
+});
+
+els.back.addEventListener("click", () => {
+  if (typeof els.player.goBack === "function" && els.player.canGoBack && els.player.canGoBack()) {
+    els.player.goBack();
+  }
+});
+
+els.pin.addEventListener("click", async () => {
+  const next = !(els.pin.getAttribute("aria-pressed") === "true");
+  const applied = await window.xvw.setAlwaysOnTop(next);
+  setPressed(els.pin, Boolean(applied));
+});
+
+els.compact.addEventListener("click", async () => {
+  const next = !(els.compact.getAttribute("aria-pressed") === "true");
+  await window.xvw.setCompact(next);
+  setPressed(els.compact, next);
+});
+
+els.helpBtn.addEventListener("click", () => setHelpOpen(true));
+els.helpClose.addEventListener("click", () => setHelpOpen(false));
+els.help.addEventListener("click", (event) => {
+  if (event.target === els.help) setHelpOpen(false);
+});
+
+els.winControls.addEventListener("click", (event) => {
+  const action = event.target?.dataset?.win;
+  if (action) window.xvw.windowControl(action);
+});
+
+document.addEventListener("keydown", (event) => {
+  const meta = event.metaKey || event.ctrlKey;
+
+  if (event.key === "Escape") {
+    if (state.helpOpen) {
+      setHelpOpen(false);
+      event.preventDefault();
+    } else if (state.toolbarHidden) {
+      document.body.classList.remove("toolbar-hidden");
+      state.toolbarHidden = false;
+      event.preventDefault();
+    }
+  }
+
+  if (event.key === "F11") {
+    state.toolbarHidden = !state.toolbarHidden;
+    document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
+    event.preventDefault();
+  }
+
+  if (meta && event.key.toLowerCase() === "l") {
+    els.input.focus();
+    els.input.select();
+    event.preventDefault();
+  }
+
+  if (event.key === "F1") {
+    setHelpOpen(!state.helpOpen);
+    event.preventDefault();
+  }
+});
+
+els.player.addEventListener("did-navigate", (event) => {
+  if (event.url && event.url !== "about:blank") {
+    els.input.value = event.url;
+    window.xvw.rememberUrl(event.url);
+  }
+});
+
+els.player.addEventListener("did-navigate-in-page", (event) => {
+  if (event.url && event.url !== "about:blank") {
+    els.input.value = event.url;
+    window.xvw.rememberUrl(event.url);
+  }
+});
+
+els.player.addEventListener("did-fail-load", (event) => {
+  if (event.errorCode && event.errorCode !== -3) {
+    showToast("That page failed to load. Check the URL and your network.");
+  }
+});
+
+async function boot() {
+  document.body.classList.toggle("mac", window.xvw.platform === "darwin");
+  if (window.xvw.platform !== "darwin") {
+    els.winControls.hidden = false;
+  }
+
+  const initial = await window.xvw.getState();
+  setPressed(els.pin, Boolean(initial.alwaysOnTop));
+  setPressed(els.compact, initial.compact !== false);
+  if (initial.lastUrl) {
+    showPlayer(initial.lastUrl, initial.lastUrl);
+  }
+
+  window.xvw.onState((next) => {
+    if (typeof next.alwaysOnTop === "boolean") setPressed(els.pin, next.alwaysOnTop);
+    if (typeof next.compact === "boolean") setPressed(els.compact, next.compact);
+  });
+
+  window.xvw.onOpenLoadUrl((result) => {
+    if (result?.ok && result.loadUrl) showPlayer(result.loadUrl, result.loadUrl);
+  });
+
+  window.xvw.onToggleHelp(() => setHelpOpen(!state.helpOpen));
+}
+
+boot();

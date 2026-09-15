@@ -1,0 +1,280 @@
+:root {
+  color-scheme: dark;
+  --bg: #050505;
+  --bar: #0f1113;
+  --bar-border: #2f3336;
+  --text: #e7e9ea;
+  --muted: #8b98a5;
+  --accent: #1d9bf0;
+  --accent-hover: #4db2f5;
+  --danger: #f4212e;
+  --btn: #1e2328;
+  --btn-hover: #2a3138;
+  --radius: 8px;
+  --toolbar-h: 48px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+body.mac .traffic-spacer {
+  width: 72px;
+  flex: 0 0 72px;
+}
+
+body:not(.mac) .traffic-spacer {
+  display: none;
+}
+
+.toolbar {
+  height: var(--toolbar-h);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  background: var(--bar);
+  border-bottom: 1px solid var(--bar-border);
+  -webkit-app-region: drag;
+}
+
+.toolbar > * {
+  -webkit-app-region: no-drag;
+}
+
+body.toolbar-hidden .toolbar {
+  display: none;
+}
+
+body.toolbar-hidden .stage {
+  height: 100%;
+}
+
+.url-form {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+#url-input {
+  flex: 1;
+  min-width: 80px;
+  height: 30px;
+  border: 1px solid var(--bar-border);
+  border-radius: 999px;
+  background: #000;
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+  user-select: text;
+}
+
+#url-input:focus {
+  border-color: var(--accent);
+}
+
+.icon-btn,
+.text-btn,
+.win-controls button {
+  height: 30px;
+  border: 1px solid transparent;
+  background: var(--btn);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+.icon-btn {
+  width: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.icon-btn.on,
+.icon-btn[aria-pressed="true"] {
+  background: #12344a;
+  color: var(--accent);
+  border-color: #1d6aa3;
+}
+
+.text-btn.primary {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.text-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.icon-btn:hover,
+.text-btn:hover,
+.win-controls button:hover {
+  background: var(--btn-hover);
+}
+
+.text-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.win-controls {
+  display: flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.win-controls button {
+  width: 30px;
+  padding: 0;
+  font-size: 12px;
+}
+
+.win-controls button.close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+.stage {
+  position: relative;
+  height: calc(100% - var(--toolbar-h));
+  background: #000;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.empty.hidden,
+.player.hidden,
+.help-overlay.hidden,
+.toast.hidden {
+  display: none;
+}
+
+.empty-card {
+  max-width: 560px;
+  color: var(--text);
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #16181c;
+  border: 1px solid var(--bar-border);
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  letter-spacing: -0.02em;
+}
+
+.empty-card p,
+.help-card p {
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+
+ol {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  color: var(--text);
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+webview.player {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+}
+
+.help-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 5;
+}
+
+.help-card {
+  background: #16181c;
+  border: 1px solid var(--bar-border);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  max-width: 480px;
+  width: min(480px, 100%);
+}
+
+.help-card h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.help-card ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: var(--text);
+}
+
+.help-card code {
+  font-size: 12px;
+  background: #000;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  background: #16181c;
+  border: 1px solid var(--bar-border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 999px;
+  z-index: 6;
+  font-size: 12px;
+}
+
+body.help-open webview.player {
+  visibility: hidden;
+}

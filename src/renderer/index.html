@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; media-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>X Video Window</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="toolbar" id="toolbar">
+      <div class="traffic-spacer" aria-hidden="true"></div>
+      <button class="icon-btn" id="back-btn" title="Back" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M15.5 5.5 8 12l7.5 6.5 1.4-1.6L11.2 12l5.7-4.9z"
+          />
+        </svg>
+      </button>
+      <form class="url-form" id="url-form" autocomplete="off">
+        <input
+          id="url-input"
+          type="text"
+          spellcheck="false"
+          placeholder="Paste an x.com or twitter.com post URL"
+          aria-label="X post URL"
+        />
+        <button type="submit" class="text-btn primary" id="open-btn">Open</button>
+      </form>
+      <button class="text-btn" id="paste-btn" title="Open the X link on your clipboard">
+        Paste
+      </button>
+      <button class="text-btn" id="signin-btn" title="Sign in with your X account">
+        Sign in
+      </button>
+      <button class="icon-btn" id="pin-btn" title="Always on top" aria-label="Always on top" aria-pressed="false">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M14.5 3.5 20 9l-1.2 1.2-1.6-1.6-3.7 3.7V19l-1.5 1.5L10 18.5V12.3L6.3 8.6 4.7 10.2 3.5 9l5.5-5.5 1.2 1.2L8.6 6.3 12.3 10h.01L16.4 5.9l-1.6-1.6z"
+          />
+        </svg>
+      </button>
+      <button class="icon-btn" id="compact-btn" title="Hide X sidebar, feed, and replies" aria-label="Focus video" aria-pressed="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M4 6h16v2H4V6zm2 5h12v2H6v-2zm3 5h6v2H9v-2z"
+          />
+        </svg>
+      </button>
+      <button class="icon-btn" id="help-btn" title="Help" aria-label="Help">?</button>
+      <div class="win-controls" id="win-controls" hidden>
+        <button type="button" data-win="min" title="Minimize" aria-label="Minimize">─</button>
+        <button type="button" data-win="max" title="Maximize" aria-label="Maximize">□</button>
+        <button type="button" data-win="close" class="close" title="Close" aria-label="Close">×</button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section class="empty" id="empty">
+        <div class="empty-card">
+          <div class="logo" aria-hidden="true">▶</div>
+          <h1>Watch X videos in a window you can resize</h1>
+          <p>
+            Paste a public post or video link from x.com or twitter.com. Drag any
+            edge of this window — the player is not stuck in a fixed layout.
+          </p>
+          <ol>
+            <li>Copy a post URL from X.</li>
+            <li>Click <strong>Paste</strong> or drop it in the bar and press Open.</li>
+            <li>Optional: <strong>Sign in</strong> with your own X account for private or restricted videos. The session stays on this computer.</li>
+            <li>Pin with <strong>Always on top</strong> if you want the player above other windows.</li>
+          </ol>
+          <p class="hint">
+            Keyboard: ⌘/Ctrl+L focus link · ⌘/Ctrl+O open clipboard ·
+            ⌘/Ctrl+Shift+T always on top · F1 help · F11 hide toolbar
+          </p>
+        </div>
+      </section>
+      <webview
+        id="player"
+        class="player hidden"
+        partition="persist:x-session"
+      ></webview>
+    </main>
+
+    <div class="help-overlay hidden" id="help" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <div class="help-card">
+        <h2 id="help-title">X Video Window</h2>
+        <p>
+          A small desktop player for X (Twitter) videos. Load a post in an
+          embedded browser, resize freely, and optionally keep the window on top.
+        </p>
+        <ul>
+          <li><strong>Links:</strong> x.com and twitter.com status, video, and <code>/i/status</code> URLs.</li>
+          <li><strong>Sign in:</strong> use the Sign in button and log into <em>your</em> X account. Credentials are never scraped; cookies stay in this app’s session.</li>
+          <li><strong>Focus:</strong> the focus toggle hides X’s sidebar, left nav, and reply thread so the video is easier to watch.</li>
+          <li><strong>Private videos:</strong> stay signed in. Closing the app does not log you out.</li>
+        </ul>
+        <p class="hint">This app does not bypass X login or download videos from CDNs.</p>
+        <button type="button" class="text-btn primary" id="help-close">Got it</button>
+      </div>
+    </div>
+
+    <div class="toast hidden" id="toast" role="status"></div>
+    <script src="renderer.js"></script>
+  </body>
+</html>

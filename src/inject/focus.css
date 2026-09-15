@@ -1,0 +1,48 @@
+/* Hide X chrome so the post / video is the focus. Auth flows are left alone in JS. */
+
+header[role="banner"] {
+  display: none !important;
+}
+
+[data-testid="sidebarColumn"],
+[data-testid="BottomBar"],
+[data-testid="sheetDialog"] [aria-label="Home timeline"],
+div[aria-label="Trending"],
+div[aria-label="Timeline: Trending now"],
+div[data-testid="DMDrawer"] {
+  display: none !important;
+}
+
+main[role="main"] {
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-testid="primaryColumn"] {
+  max-width: 100% !important;
+  width: 100% !important;
+  border: none !important;
+  margin: 0 auto !important;
+}
+
+[data-testid="primaryColumn"] > div {
+  max-width: 100% !important;
+}
+
+/* Sticky "Post" header on status pages */
+[data-testid="primaryColumn"] [data-testid="ScrollSnap-Accessibility-Target"] {
+  top: 0 !important;
+}
+
+body {
+  background: #000 !important;
+}
+
+#react-root {
+  background: #000 !important;
+}
+
+video {
+  outline: none !important;
+}
