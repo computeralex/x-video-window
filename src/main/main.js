@@ -19,6 +19,8 @@ const { isAllowedNavigation } = require("./allowed");
 const { isAuthUrl, persistedLastUrl } = require("./auth");
 const { loadStore, saveStore, sanitizeBounds } = require("./store");
 const { createLoginWindow } = require("./login-window");
+const { applySessionPermissions } = require("./permissions");
+const { editMenuTemplate } = require("./edit-menu");
 
 const PARTITION = "persist:x-session";
 
@@ -148,10 +150,7 @@ function attachGuestGuards(contents) {
     injectGuest(contents);
   });
   contents.on("before-input-event", handleAccelerators);
-
-  contents.session.setPermissionRequestHandler((_wc, permission, callback) => {
-    callback(permission === "media" || permission === "fullscreen");
-  });
+  applySessionPermissions(contents.session);
 }
 
 function resolveOpen(text) {
@@ -218,6 +217,7 @@ function createMenu() {
         isMac ? { role: "close" } : { role: "quit" },
       ],
     },
+    editMenuTemplate(),
     {
       label: "View",
       submenu: [
@@ -294,6 +294,10 @@ function createMenu() {
 function handleAccelerators(event, input) {
   if (input.type !== "keyDown" || !mainWindow || mainWindow.isDestroyed()) return;
   const ctrl = Boolean(input.control || input.meta);
+  // Never steal clipboard shortcuts (Cmd/Ctrl+V/C/X/A) — needed for Sign in.
+  if (ctrl && ["c", "v", "x", "a", "z", "y"].includes(String(input.key).toLowerCase())) {
+    return;
+  }
   if (input.key === "F1") {
     mainWindow.webContents.send("toggle-help");
     event.preventDefault();
@@ -473,9 +477,7 @@ app.whenReady().then(() => {
 
   const xSession = session.fromPartition(PARTITION);
   xSession.setUserAgent(chromeUserAgent());
-  xSession.setPermissionRequestHandler((_wc, permission, callback) => {
-    callback(permission === "media" || permission === "fullscreen");
-  });
+  applySessionPermissions(xSession);
 
   app.on("web-contents-created", (_event, contents) => {
     contents.on("will-attach-webview", (event, webPreferences, params) => {

@@ -1,9 +1,10 @@
 "use strict";
 
 const path = require("node:path");
-const { BrowserWindow, WebContentsView } = require("electron");
+const { BrowserWindow, Menu, WebContentsView } = require("electron");
 const { isAllowedNavigation } = require("./allowed");
 const { isAuthUrl, isSignedInLanding } = require("./auth");
+const { editMenuTemplate, attachEditContextMenu } = require("./edit-menu");
 
 const SIGN_IN_URL = "https://x.com/i/flow/login";
 const TOOLBAR_H = 48;
@@ -57,7 +58,7 @@ function createLoginWindow({ partition, userAgent, onComplete }) {
     minHeight: 520,
     title: "Sign in to X",
     backgroundColor: "#050505",
-    autoHideMenuBar: true,
+    autoHideMenuBar: false,
     show: false,
     webPreferences: {
       preload: path.join(__dirname, "../preload/login-preload.js"),
@@ -116,6 +117,18 @@ function createLoginWindow({ partition, userAgent, onComplete }) {
   };
 
   attachLoginGuards(view.webContents, { onBlocked, onUrl });
+  attachEditContextMenu(view.webContents, win);
+
+  // Dedicated Sign-in window: expose Edit (paste) even when the app menu is hidden.
+  win.setMenu(
+    Menu.buildFromTemplate([
+      {
+        label: "File",
+        submenu: [{ role: "close" }],
+      },
+      editMenuTemplate(),
+    ])
+  );
 
   win.on("resize", () => layoutView(win, view));
   win.on("closed", () => {
@@ -127,10 +140,13 @@ function createLoginWindow({ partition, userAgent, onComplete }) {
 
   win.webContents.on("will-navigate", (event) => event.preventDefault());
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  // Do not attach before-input-event handlers here — Cmd/Ctrl+V must reach
+  // the login form's password and text fields.
 
   win.once("ready-to-show", () => {
     win.show();
     win.focus();
+    view.webContents.focus();
   });
 
   win.loadFile(path.join(__dirname, "../renderer/login.html"));
