@@ -5,11 +5,13 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("xvw", {
   platform: process.platform,
   getState: () => ipcRenderer.invoke("get-state"),
+  getFocusAssets: () => ipcRenderer.invoke("get-focus-assets"),
   openUrl: (url) => ipcRenderer.invoke("open-url", url),
   pasteAndOpen: () => ipcRenderer.invoke("paste-and-open"),
   setAlwaysOnTop: (value) => ipcRenderer.invoke("set-always-on-top", value),
   setCompact: (value) => ipcRenderer.invoke("set-compact", value),
   rememberUrl: (url) => ipcRenderer.invoke("remember-url", url),
+  fillVideo: () => ipcRenderer.invoke("fill-video"),
   windowControl: (action) => ipcRenderer.invoke("window-control", action),
   onState: (callback) => {
     const listener = (_event, state) => callback(state);
@@ -21,5 +23,14 @@ contextBridge.exposeInMainWorld("xvw", {
   },
   onToggleHelp: (callback) => {
     ipcRenderer.on("toggle-help", () => callback());
+  },
+  onToggleToolbar: (callback) => {
+    ipcRenderer.on("toggle-toolbar", () => callback());
+  },
+  onFocusUrl: (callback) => {
+    ipcRenderer.on("focus-url", () => callback());
+  },
+  onFillVideo: (callback) => {
+    ipcRenderer.on("fill-video", () => callback());
   },
 });

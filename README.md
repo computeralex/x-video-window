@@ -9,6 +9,7 @@ X’s browser UI keeps the player in a fixed layout. This app is a dedicated win
 - Paste `x.com` or `twitter.com` status / video links (also `/i/status/…`, `/video/1`, and legacy `/i/videos/tweet/…` URLs)
 - Freely resizable window; last size and position are remembered
 - Optional **Always on top**
+- **Fill** expands the playing `<video>` to the window (browser fullscreen inside the webview)
 - **Sign in** inside the app with *your* X account — the session is stored locally and reused on the next launch. Credentials are never scraped or sent anywhere else
 - Focus mode hides X’s sidebar, left nav, and reply thread so the post/video is the main thing on screen
 - Open from clipboard, Back, in-app help

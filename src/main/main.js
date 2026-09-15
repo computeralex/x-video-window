@@ -116,6 +116,10 @@ function attachGuestGuards(contents) {
   contents.on("dom-ready", () => {
     injectGuest(contents);
   });
+  contents.on("did-stop-loading", () => {
+    injectGuest(contents);
+  });
+  contents.on("before-input-event", handleAccelerators);
 
   contents.session.setPermissionRequestHandler((_wc, permission, callback) => {
     callback(permission === "media" || permission === "fullscreen");
@@ -202,6 +206,21 @@ function createMenu() {
             sendState();
           },
         },
+        {
+          label: "Fill video",
+          accelerator: "F8",
+          click: async () => {
+            if (!guestContents || guestContents.isDestroyed()) return;
+            try {
+              await guestContents.executeJavaScript(
+                `(() => { const v = document.querySelector("video"); const r = v && (v.requestFullscreen || v.webkitRequestFullscreen); if (r) r.call(v); })()`,
+                true
+              );
+            } catch {
+              // ignore
+            }
+          },
+        },
         { type: "separator" },
         { role: "reload" },
         { role: "toggleDevTools" },
@@ -226,6 +245,27 @@ function createMenu() {
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function handleAccelerators(event, input) {
+  if (input.type !== "keyDown" || !mainWindow || mainWindow.isDestroyed()) return;
+  const ctrl = Boolean(input.control || input.meta);
+  if (input.key === "F1") {
+    mainWindow.webContents.send("toggle-help");
+    event.preventDefault();
+  }
+  if (input.key === "F11") {
+    mainWindow.webContents.send("toggle-toolbar");
+    event.preventDefault();
+  }
+  if (ctrl && input.key.toLowerCase() === "l") {
+    mainWindow.webContents.send("focus-url");
+    event.preventDefault();
+  }
+  if (input.key === "F8") {
+    mainWindow.webContents.send("fill-video");
+    event.preventDefault();
+  }
 }
 
 function createWindow() {
@@ -262,6 +302,7 @@ function createWindow() {
 
   mainWindow.webContents.on("will-navigate", (event) => event.preventDefault());
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  mainWindow.webContents.on("before-input-event", handleAccelerators);
 
   mainWindow.on("resize", persistSoon);
   mainWindow.on("move", persistSoon);
@@ -276,6 +317,12 @@ function createWindow() {
 
 function registerIpc() {
   ipcMain.handle("get-state", () => publicState());
+
+  ipcMain.handle("get-focus-assets", () => ({
+    css: injectCss,
+    js: injectJs,
+    compact: state?.compact !== false,
+  }));
 
   ipcMain.handle("open-url", (_event, text) => resolveOpen(text));
 
@@ -310,6 +357,34 @@ function registerIpc() {
     if (typeof url === "string" && isAllowedNavigation(url)) {
       state.lastUrl = url;
       persistSoon();
+    }
+  });
+
+  ipcMain.handle("fill-video", async () => {
+    if (!guestContents || guestContents.isDestroyed()) {
+      return { ok: false, error: "Open a post first." };
+    }
+    try {
+      const ok = await guestContents.executeJavaScript(
+        `(() => {
+          const video = document.querySelector("video");
+          if (!video) return false;
+          const req = video.requestFullscreen || video.webkitRequestFullscreen;
+          if (!req) return false;
+          req.call(video);
+          return true;
+        })()`,
+        true
+      );
+      if (!ok) {
+        return {
+          ok: false,
+          error: "No video yet. Start playback, then click Fill.",
+        };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Could not fill the video." };
     }
   });
 

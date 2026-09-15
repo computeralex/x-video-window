@@ -10,6 +10,7 @@ const els = {
   signin: document.getElementById("signin-btn"),
   back: document.getElementById("back-btn"),
   pin: document.getElementById("pin-btn"),
+  fill: document.getElementById("fill-btn"),
   compact: document.getElementById("compact-btn"),
   helpBtn: document.getElementById("help-btn"),
   help: document.getElementById("help"),
@@ -103,10 +104,31 @@ els.pin.addEventListener("click", async () => {
   setPressed(els.pin, Boolean(applied));
 });
 
+els.fill.addEventListener("click", async () => {
+  try {
+    const ok = await els.player.executeJavaScript(`(() => {
+      const video = document.querySelector("video");
+      if (!video) return false;
+      const req = video.requestFullscreen || video.webkitRequestFullscreen;
+      if (!req) return false;
+      req.call(video);
+      return true;
+    })()`);
+    if (!ok) showToast("No video yet. Start playback, then click Fill.");
+  } catch {
+    showToast("Could not fill the video.");
+  }
+});
+
 els.compact.addEventListener("click", async () => {
   const next = !(els.compact.getAttribute("aria-pressed") === "true");
   await window.xvw.setCompact(next);
   setPressed(els.compact, next);
+  try {
+    await els.player.executeJavaScript(`window.__xvwSetCompact(${next ? "true" : "false"})`);
+  } catch {
+    // not loaded
+  }
 });
 
 els.helpBtn.addEventListener("click", () => setHelpOpen(true));
@@ -152,6 +174,25 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+async function injectFocus() {
+  try {
+    const assets = await window.xvw.getFocusAssets();
+    if (!assets) return;
+    await els.player.insertCSS(assets.css);
+    const compact = assets.compact !== false;
+    await els.player.executeJavaScript(
+      `${assets.js}\nwindow.__xvwSetCompact(${compact ? "true" : "false"});`
+    );
+    console.log("xvw: focus injected");
+  } catch (err) {
+    console.error("xvw: focus inject failed", err);
+  }
+}
+
+els.player.addEventListener("dom-ready", () => {
+  injectFocus();
+});
+
 els.player.addEventListener("did-navigate", (event) => {
   if (event.url && event.url !== "about:blank") {
     els.input.value = event.url;
@@ -178,7 +219,12 @@ async function boot() {
     els.winControls.hidden = false;
   }
 
-  const initial = await window.xvw.getState();
+  let initial = { alwaysOnTop: false, compact: true, lastUrl: "" };
+  try {
+    initial = await window.xvw.getState();
+  } catch {
+    // Main process not ready yet; keep defaults.
+  }
   setPressed(els.pin, Boolean(initial.alwaysOnTop));
   setPressed(els.compact, initial.compact !== false);
   if (initial.lastUrl) {
@@ -195,6 +241,15 @@ async function boot() {
   });
 
   window.xvw.onToggleHelp(() => setHelpOpen(!state.helpOpen));
+  window.xvw.onToggleToolbar(() => {
+    state.toolbarHidden = !state.toolbarHidden;
+    document.body.classList.toggle("toolbar-hidden", state.toolbarHidden);
+  });
+  window.xvw.onFocusUrl(() => {
+    els.input.focus();
+    els.input.select();
+  });
+  window.xvw.onFillVideo(() => els.fill.click());
 }
 
 boot();

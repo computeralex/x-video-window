@@ -6,7 +6,6 @@ header[role="banner"] {
 
 [data-testid="sidebarColumn"],
 [data-testid="BottomBar"],
-[data-testid="sheetDialog"] [aria-label="Home timeline"],
 div[aria-label="Trending"],
 div[aria-label="Timeline: Trending now"],
 div[data-testid="DMDrawer"] {

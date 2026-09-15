@@ -40,7 +40,8 @@
     return `
       header[role="banner"],
       [data-testid="sidebarColumn"],
-      [data-testid="BottomBar"] {
+      [data-testid="BottomBar"],
+      [data-testid="sheetDialog"] {
         display: none !important;
       }
       main[role="main"],
@@ -49,6 +50,9 @@
         width: 100% !important;
         border: none !important;
         margin: 0 auto !important;
+      }
+      [data-testid="primaryColumn"] > div > div:first-child:has(h2) {
+        display: none !important;
       }
       ${replies}
     `;
@@ -70,16 +74,34 @@
     const headings = root.querySelectorAll("span, h2, h3");
     headings.forEach((node) => {
       const text = (node.textContent || "").trim();
-      if (/^(Discover more|More posts|You might like|Who to follow|What's happening)$/i.test(text)) {
+      if (/^(Discover more|More posts|You might like|Who to follow|What's happening|See all the replies|Continue to X|Log in or sign up for X|New to X\?|Relevant people|Don’t miss what’s happening|Don't miss what’s happening)$/i.test(text)) {
         const cell = node.closest('[data-testid="cellInnerDiv"]') || node.closest("section");
         if (cell) cell.style.setProperty("display", "none", "important");
       }
     });
   }
 
+  function hideRightRail() {
+    if (isAuthPath(location.pathname)) return;
+    const sidebar = document.querySelector('[data-testid="sidebarColumn"]');
+    if (sidebar) sidebar.style.setProperty("display", "none", "important");
+
+    const main = document.querySelector("main[role='main']");
+    if (!main) return;
+    const row = main.querySelector(":scope > div > div");
+    if (!row) return;
+    const cols = Array.from(row.children);
+    if (cols.length < 2) return;
+    const last = cols[cols.length - 1];
+    if (last && !last.querySelector("article")) {
+      last.style.setProperty("display", "none", "important");
+    }
+  }
+
   function apply() {
     ensureStyle();
     hideDiscoverMore(document);
+    hideRightRail();
   }
 
   window.__xvwApplyFocus = apply;
@@ -87,6 +109,8 @@
     window.__xvwCompact = Boolean(value);
     apply();
   };
+
+  console.log("[xvw] focus script running", location.pathname);
 
   let timer = 0;
   function schedule() {
