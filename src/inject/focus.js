@@ -24,6 +24,17 @@
     );
   }
 
+  function isWatchPath(pathname) {
+    const p = pathname || "";
+    return (
+      /\/i\/broadcasts(?:\/|$)/i.test(p) ||
+      /\/i\/spaces(?:\/|$)/i.test(p) ||
+      /\/i\/live(?:\/|$)/i.test(p) ||
+      /\/broadcasts(?:\/|$)/i.test(p) ||
+      /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d+/i.test(p)
+    );
+  }
+
   function css(compact, auth) {
     if (auth) {
       return "header[role='banner'] { display: revert !important; }";
@@ -35,6 +46,52 @@
       [aria-label="Timeline: Conversation"] > div > div > div:nth-child(n+2),
       [data-testid="inlinePrompt"],
       [href$="/analytics"] {
+        display: none !important;
+      }
+    `
+      : "";
+
+    const theater = compact
+      ? `
+      html.xvw-theater,
+      html.xvw-theater body,
+      html.xvw-theater #react-root {
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow: hidden !important;
+        background: #000 !important;
+      }
+      html.xvw-theater .xvw-player-root {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        z-index: 2147483000 !important;
+        background: #000 !important;
+      }
+      html.xvw-theater .xvw-fill-box {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        flex: 1 1 auto !important;
+        transform: none !important;
+      }
+      html.xvw-theater .xvw-player-root video {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        object-fit: contain !important;
+        background: #000 !important;
+      }
+      html.xvw-theater .xvw-hide-chrome {
         display: none !important;
       }
     `
@@ -57,7 +114,12 @@
       [data-testid="primaryColumn"] > div > div:first-child:has(h2) {
         display: none !important;
       }
+      [data-testid="videoPlayer"],
+      [data-testid="videoComponent"] {
+        max-width: none !important;
+      }
       ${replies}
+      ${theater}
     `;
   }
 
@@ -77,9 +139,15 @@
     const headings = root.querySelectorAll("span, h2, h3");
     headings.forEach((node) => {
       const text = (node.textContent || "").trim();
-      if (/^(Discover more|More posts|You might like|Who to follow|What's happening|See all the replies|Continue to X|Log in or sign up for X|New to X\?|Relevant people|Don’t miss what’s happening|Don't miss what’s happening)$/i.test(text)) {
+      if (
+        /^(Discover more|More posts|You might like|Who to follow|What's happening|See all the replies|Continue to X|Log in or sign up for X|New to X\?|Relevant people|Don’t miss what’s happening|Don't miss what’s happening|Scan to get the app)$/i.test(
+          text
+        )
+      ) {
         const cell = node.closest('[data-testid="cellInnerDiv"]') || node.closest("section");
-        if (cell) cell.style.setProperty("display", "none", "important");
+        if (cell && !cell.querySelector("video")) {
+          cell.style.setProperty("display", "none", "important");
+        }
       }
     });
   }
@@ -96,21 +164,117 @@
     const cols = Array.from(row.children);
     if (cols.length < 2) return;
     const last = cols[cols.length - 1];
-    if (last && !last.querySelector("article")) {
+    if (last && !last.querySelector("article") && !last.querySelector("video")) {
       last.style.setProperty("display", "none", "important");
     }
   }
 
+  function pickVideo() {
+    const videos = Array.from(document.querySelectorAll("video"));
+    if (!videos.length) return null;
+    videos.sort((a, b) => {
+      const ap = a.paused ? 0 : 1;
+      const bp = b.paused ? 0 : 1;
+      if (ap !== bp) return bp - ap;
+      return b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight;
+    });
+    return videos[0];
+  }
+
+  function findPlayerRoot(video) {
+    const known = video.closest(
+      '[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="previewInterstitial"]'
+    );
+    if (known) return known;
+    let el = video.parentElement;
+    let candidate = el || video;
+    for (let i = 0; i < 10 && el && el !== document.body; i++) {
+      const testid = el.getAttribute("data-testid") || "";
+      if (/video/i.test(testid)) return el;
+      candidate = el;
+      if (el.getAttribute("data-testid") === "primaryColumn") break;
+      if (el.getAttribute("role") === "main") break;
+      el = el.parentElement;
+    }
+    return candidate;
+  }
+
+  function clearTheaterMarks() {
+    document.documentElement.classList.remove("xvw-theater");
+    document.querySelectorAll(".xvw-player-root").forEach((n) => n.classList.remove("xvw-player-root"));
+    document.querySelectorAll(".xvw-fill-box").forEach((n) => n.classList.remove("xvw-fill-box"));
+    document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
+  }
+
+  function applyTheater() {
+    if (window.__xvwCompact === false || isAuthPath(location.pathname) || !isWatchPath(location.pathname)) {
+      clearTheaterMarks();
+      return false;
+    }
+    const video = pickVideo();
+    if (!video) return false;
+    const root = findPlayerRoot(video);
+    if (!root) return false;
+
+    document.documentElement.classList.add("xvw-theater");
+    root.classList.add("xvw-player-root");
+    let el = video;
+    while (el && el !== document.body) {
+      el.classList.add("xvw-fill-box");
+      if (el === root) break;
+      el = el.parentElement;
+    }
+
+    let col = root;
+    for (let i = 0; i < 12 && col && col !== document.body; i++) {
+      const parent = col.parentElement;
+      if (!parent) break;
+      for (const sib of parent.children) {
+        if (sib === col || sib.contains(root) || sib.querySelector("video")) continue;
+        const r = sib.getBoundingClientRect();
+        if (r.width >= 80 && r.height >= 40) {
+          sib.classList.add("xvw-hide-chrome");
+        }
+      }
+      if (parent.id === "react-root" || parent === document.body) break;
+      col = parent;
+    }
+    return true;
+  }
+
   function apply() {
     ensureStyle();
+    if (isAuthPath(location.pathname)) {
+      clearTheaterMarks();
+      return;
+    }
     hideDiscoverMore(document);
     hideRightRail();
+    applyTheater();
   }
 
   window.__xvwApplyFocus = apply;
   window.__xvwSetCompact = function setCompact(value) {
     window.__xvwCompact = Boolean(value);
     apply();
+  };
+  window.__xvwFillVideo = function fillVideo() {
+    const video = pickVideo();
+    if (!video) return { ok: false, error: "No video yet. Start playback, then click Fill." };
+    apply();
+    const req = video.requestFullscreen || video.webkitRequestFullscreen;
+    if (req) {
+      try {
+        const ret = req.call(video);
+        if (ret && typeof ret.then === "function") {
+          ret.catch(() => {});
+        }
+        return { ok: true, mode: "fullscreen" };
+      } catch {
+        // Fall through to theater layout (video already expanded).
+      }
+    }
+    return { ok: true, mode: "theater" };
   };
 
   console.log("[xvw] focus script running", location.pathname);
@@ -126,5 +290,6 @@
 
   const obs = new MutationObserver(schedule);
   obs.observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener("resize", schedule);
   apply();
 })();

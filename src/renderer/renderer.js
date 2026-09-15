@@ -46,9 +46,19 @@ function setHelpOpen(open) {
   document.body.classList.toggle("help-open", open);
 }
 
+function layoutPlayer() {
+  const stage = document.querySelector(".stage");
+  if (!stage || !els.player) return;
+  const width = Math.max(1, Math.floor(stage.clientWidth));
+  const height = Math.max(1, Math.floor(stage.clientHeight));
+  els.player.style.width = `${width}px`;
+  els.player.style.height = `${height}px`;
+}
+
 function showPlayer(url, addressBarValue) {
   els.empty.classList.add("hidden");
   els.player.classList.remove("hidden");
+  layoutPlayer();
   if (addressBarValue != null) {
     els.input.value = addressBarValue;
   }
@@ -102,15 +112,19 @@ els.pin.addEventListener("click", async () => {
 
 els.fill.addEventListener("click", async () => {
   try {
-    const ok = await els.player.executeJavaScript(`(() => {
-      const video = document.querySelector("video");
-      if (!video) return false;
-      const req = video.requestFullscreen || video.webkitRequestFullscreen;
-      if (!req) return false;
-      req.call(video);
-      return true;
-    })()`);
-    if (!ok) showToast("No video yet. Start playback, then click Fill.");
+    const result = await els.player.executeJavaScript(
+      `window.__xvwFillVideo ? window.__xvwFillVideo() : (() => {
+        const video = document.querySelector("video");
+        if (!video) return { ok: false };
+        const req = video.requestFullscreen || video.webkitRequestFullscreen;
+        if (!req) return { ok: true, mode: "theater" };
+        req.call(video);
+        return { ok: true, mode: "fullscreen" };
+      })()`
+    );
+    if (!result || !result.ok) {
+      showToast(result?.error || "No video yet. Start playback, then click Fill.");
+    }
   } catch {
     showToast("Could not fill the video.");
   }
@@ -191,6 +205,7 @@ async function injectFocus() {
 }
 
 els.player.addEventListener("dom-ready", () => {
+  layoutPlayer();
   injectFocus();
 });
 
@@ -217,6 +232,13 @@ els.player.addEventListener("did-fail-load", (event) => {
 });
 
 async function boot() {
+  window.addEventListener("resize", layoutPlayer);
+  const stage = document.querySelector(".stage");
+  if (stage && typeof ResizeObserver === "function") {
+    new ResizeObserver(() => layoutPlayer()).observe(stage);
+  }
+  layoutPlayer();
+
   document.body.classList.toggle("mac", window.xvw.platform === "darwin");
   if (window.xvw.platform !== "darwin") {
     els.winControls.hidden = false;

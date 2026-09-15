@@ -6,12 +6,12 @@ X’s browser UI keeps the player in a fixed layout. This app is a dedicated win
 
 ## Features
 
-- Paste `x.com` or `twitter.com` status / video links (also `/i/status/…`, `/video/1`, and legacy `/i/videos/tweet/…` URLs)
-- Freely resizable window; last size and position are remembered
+- Paste `x.com` or `twitter.com` status / video / **broadcast** links (also `/i/status/…`, `/i/broadcasts/…`, `/video/1`, and legacy `/i/videos/tweet/…` URLs)
+- Freely resizable window; last size and position are remembered — with Focus on, the playing video grows with the window (`object-fit: contain`)
 - Optional **Always on top**
-- **Fill** expands the playing `<video>` to the window (browser fullscreen inside the webview)
+- **Fill** requests fullscreen on the `<video>`, or falls back to the same in-window theater layout used by Focus (works on broadcasts too)
 - **Sign in** opens a dedicated window (not the video webview) using the same local session, so X’s login UI is not covered by player CSS. Paste works in that window (Edit → Paste, right-click Paste, or ⌘/Ctrl+V) including the password field
-- Focus mode hides X’s sidebar, left nav, and reply thread so the post/video is the main thing on screen
+- Focus mode hides X’s sidebar, chat rail, left nav, and reply thread so status videos and live broadcasts fill the player
 - Open from clipboard, Back, in-app help
 - Stays on X-related sites (and the hosts needed for login, captcha, and video CDNs)
 

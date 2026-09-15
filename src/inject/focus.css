@@ -42,6 +42,11 @@ body {
   background: #000 !important;
 }
 
+[data-testid="videoPlayer"],
+[data-testid="videoComponent"] {
+  max-width: none !important;
+}
+
 video {
   outline: none !important;
 }

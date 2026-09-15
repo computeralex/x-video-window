@@ -243,7 +243,7 @@ function createMenu() {
             persistSoon();
             if (guestContents && !guestContents.isDestroyed() && !isAuthUrl(guestContents.getURL())) {
               guestContents.executeJavaScript(
-                `window.__xvwSetCompact(${item.checked ? "true" : "false"})`,
+                `window.__xvwSetCompact && window.__xvwSetCompact(${item.checked ? "true" : "false"})`,
                 true
               );
             }
@@ -257,7 +257,11 @@ function createMenu() {
             if (!guestContents || guestContents.isDestroyed()) return;
             try {
               await guestContents.executeJavaScript(
-                `(() => { const v = document.querySelector("video"); const r = v && (v.requestFullscreen || v.webkitRequestFullscreen); if (r) r.call(v); })()`,
+                `window.__xvwFillVideo ? window.__xvwFillVideo() : (() => {
+                  const v = document.querySelector("video");
+                  const r = v && (v.requestFullscreen || v.webkitRequestFullscreen);
+                  if (r) r.call(v);
+                })()`,
                 true
               );
             } catch {
@@ -404,7 +408,7 @@ function registerIpc() {
     if (guestContents && !guestContents.isDestroyed() && !isAuthUrl(guestContents.getURL())) {
       try {
         await guestContents.executeJavaScript(
-          `window.__xvwSetCompact(${state.compact ? "true" : "false"})`,
+          `window.__xvwSetCompact && window.__xvwSetCompact(${state.compact ? "true" : "false"})`,
           true
         );
       } catch {
@@ -432,24 +436,26 @@ function registerIpc() {
       return { ok: false, error: "Open a post first." };
     }
     try {
-      const ok = await guestContents.executeJavaScript(
-        `(() => {
+      const result = await guestContents.executeJavaScript(
+        `window.__xvwFillVideo ? window.__xvwFillVideo() : (() => {
           const video = document.querySelector("video");
-          if (!video) return false;
+          if (!video) return { ok: false, error: "No video yet. Start playback, then click Fill." };
           const req = video.requestFullscreen || video.webkitRequestFullscreen;
-          if (!req) return false;
-          req.call(video);
-          return true;
+          if (req) {
+            req.call(video);
+            return { ok: true, mode: "fullscreen" };
+          }
+          return { ok: true, mode: "theater" };
         })()`,
         true
       );
-      if (!ok) {
+      if (!result || !result.ok) {
         return {
           ok: false,
-          error: "No video yet. Start playback, then click Fill.",
+          error: result?.error || "No video yet. Start playback, then click Fill.",
         };
       }
-      return { ok: true };
+      return result;
     } catch {
       return { ok: false, error: "Could not fill the video." };
     }
