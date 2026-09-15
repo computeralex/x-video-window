@@ -6,7 +6,8 @@ contextBridge.exposeInMainWorld("xvw", {
   platform: process.platform,
   getState: () => ipcRenderer.invoke("get-state"),
   getFocusAssets: () => ipcRenderer.invoke("get-focus-assets"),
-  openUrl: (url) => ipcRenderer.invoke("open-url", url),
+  openSignIn: () => ipcRenderer.invoke("open-sign-in"),
+  isAuthUrl: (url) => ipcRenderer.invoke("is-auth-url", url),
   pasteAndOpen: () => ipcRenderer.invoke("paste-and-open"),
   setAlwaysOnTop: (value) => ipcRenderer.invoke("set-always-on-top", value),
   setCompact: (value) => ipcRenderer.invoke("set-compact", value),
@@ -32,5 +33,8 @@ contextBridge.exposeInMainWorld("xvw", {
   },
   onFillVideo: (callback) => {
     ipcRenderer.on("fill-video", () => callback());
+  },
+  onSignInComplete: (callback) => {
+    ipcRenderer.on("signin-complete", () => callback());
   },
 });

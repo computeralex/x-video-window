@@ -10,7 +10,7 @@ X’s browser UI keeps the player in a fixed layout. This app is a dedicated win
 - Freely resizable window; last size and position are remembered
 - Optional **Always on top**
 - **Fill** expands the playing `<video>` to the window (browser fullscreen inside the webview)
-- **Sign in** inside the app with *your* X account — the session is stored locally and reused on the next launch. Credentials are never scraped or sent anywhere else
+- **Sign in** opens a dedicated window (not the video webview) using the same local session, so X’s login UI is not covered by player CSS
 - Focus mode hides X’s sidebar, left nav, and reply thread so the post/video is the main thing on screen
 - Open from clipboard, Back, in-app help
 - Stays on X-related sites (and the hosts needed for login, captcha, and video CDNs)
@@ -29,7 +29,7 @@ npm start
 1. Copy a public X video post URL.
 2. Click **Paste** (or drop the URL in the bar and press **Open**).
 3. Resize the window while the video plays.
-4. For private or restricted videos, click **Sign in** and log into your own X account in the window.
+4. For private or restricted videos, click **Sign in** and complete login in the dedicated window (same session as the player).
 
 macOS users: `npm start` is the fastest way to try it. A packaged `.app` / `.dmg` is described below.
 
@@ -63,7 +63,9 @@ Artifacts land in `dist/`.
 
 Status links are normalized to `https://x.com/i/status/{id}` — X’s own focused post view, loaded in a persistent webview so login cookies work like a normal browser.
 
-The app then injects CSS/JS to hide timeline chrome. That is more reliable than scraping CDN `.mp4` URLs, and it still works when you are signed in. Embed widgets (`platform.twitter.com`) are intentionally not the primary path: they are flaky with `x.com` URLs and do not use your logged-in session for restricted posts.
+**Sign in** opens a separate BrowserWindow on `https://x.com/i/flow/login` with the same `persist:x-session` partition and **no** focus CSS. That avoids X’s onboarding overlay being crushed by the player’s chrome-hiding styles. After you land on the home timeline (or click Done), the login window closes and the player reloads.
+
+The player then injects CSS/JS to hide timeline chrome. That is more reliable than scraping CDN `.mp4` URLs, and it still works when you are signed in. Embed widgets (`platform.twitter.com`) are intentionally not the primary path: they are flaky with `x.com` URLs and do not use your logged-in session for restricted posts.
 
 Your session lives in Electron’s `persist:x-session` partition under this app’s user-data directory, not in Chrome/Safari.
 

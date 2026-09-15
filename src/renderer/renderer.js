@@ -1,7 +1,5 @@
 "use strict";
 
-const SIGN_IN_URL = "https://x.com/i/flow/login";
-
 const els = {
   toolbar: document.getElementById("toolbar"),
   form: document.getElementById("url-form"),
@@ -84,12 +82,10 @@ els.paste.addEventListener("click", async () => {
 });
 
 els.signin.addEventListener("click", async () => {
-  const result = await window.xvw.openUrl(SIGN_IN_URL);
-  if (!result.ok) {
-    showToast(result.error || "Could not open sign-in.");
-    return;
+  const result = await window.xvw.openSignIn();
+  if (!result?.ok) {
+    showToast(result?.error || "Could not open sign-in.");
   }
-  showPlayer(result.loadUrl, result.loadUrl);
 });
 
 els.back.addEventListener("click", () => {
@@ -176,6 +172,12 @@ document.addEventListener("keydown", (event) => {
 
 async function injectFocus() {
   try {
+    const url =
+      typeof els.player.getURL === "function"
+        ? els.player.getURL()
+        : els.player.getAttribute("src");
+    if (!url || url === "about:blank") return;
+    if (await window.xvw.isAuthUrl(url)) return;
     const assets = await window.xvw.getFocusAssets();
     if (!assets) return;
     await els.player.insertCSS(assets.css);
@@ -183,7 +185,6 @@ async function injectFocus() {
     await els.player.executeJavaScript(
       `${assets.js}\nwindow.__xvwSetCompact(${compact ? "true" : "false"});`
     );
-    console.log("xvw: focus injected");
   } catch (err) {
     console.error("xvw: focus inject failed", err);
   }
@@ -198,6 +199,7 @@ els.player.addEventListener("did-navigate", (event) => {
     els.input.value = event.url;
     window.xvw.rememberUrl(event.url);
   }
+  injectFocus();
 });
 
 els.player.addEventListener("did-navigate-in-page", (event) => {
@@ -205,6 +207,7 @@ els.player.addEventListener("did-navigate-in-page", (event) => {
     els.input.value = event.url;
     window.xvw.rememberUrl(event.url);
   }
+  injectFocus();
 });
 
 els.player.addEventListener("did-fail-load", (event) => {
@@ -250,6 +253,14 @@ async function boot() {
     els.input.select();
   });
   window.xvw.onFillVideo(() => els.fill.click());
+  window.xvw.onSignInComplete(() => {
+    showToast("Signed in. Session saved on this computer.");
+    try {
+      if (typeof els.player.reload === "function") els.player.reload();
+    } catch {
+      // no page loaded yet
+    }
+  });
 }
 
 boot();

@@ -13,8 +13,11 @@
 
   function isAuthPath(pathname) {
     return (
+      /\/i\/jf(?:\/|$)/.test(pathname) ||
       /\/i\/flow\//.test(pathname) ||
-      /\/(?:login|logout|signup|tos|privacy)/.test(pathname) ||
+      /\/onboarding(?:\/|$)/.test(pathname) ||
+      /\/(?:login|logout|signup|signin)(?:\/|$)/.test(pathname) ||
+      /[?&]mode=(?:login|signup)\b/i.test(location.search) ||
       /accounts\.google\.com/.test(location.hostname) ||
       /appleid\.apple\.com/.test(location.hostname) ||
       /hcaptcha\.com/.test(location.hostname)

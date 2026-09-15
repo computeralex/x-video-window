@@ -17,6 +17,8 @@ describe("isAllowedNavigation", () => {
     assert.equal(isAllowedNavigation("https://accounts.google.com/o/oauth2"), true);
     assert.equal(isAllowedNavigation("https://appleid.apple.com/auth/authorize"), true);
     assert.equal(isAllowedNavigation("https://newassets.hcaptcha.com/captcha"), true);
+    assert.equal(isAllowedNavigation("https://www.recaptcha.net/recaptcha"), true);
+    assert.equal(isAllowedNavigation("https://accounts.youtube.com/accounts/SetSID"), true);
   });
 
   it("blocks unrelated sites and dangerous schemes", () => {

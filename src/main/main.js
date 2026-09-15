@@ -16,9 +16,10 @@ const {
 
 const { parseXUrl } = require("./parse-url");
 const { isAllowedNavigation } = require("./allowed");
+const { isAuthUrl } = require("./auth");
 const { loadStore, saveStore, sanitizeBounds } = require("./store");
+const { createLoginWindow } = require("./login-window");
 
-const SIGN_IN_URL = "https://x.com/i/flow/login";
 const PARTITION = "persist:x-session";
 
 nativeTheme.themeSource = "dark";
@@ -32,10 +33,12 @@ const injectJs = fs.readFileSync(path.join(__dirname, "../inject/focus.js"), "ut
 
 let mainWindow = null;
 let guestContents = null;
+let loginSession = null;
 let state = null;
 let storePath = null;
 let saveTimer = null;
 const guardedGuests = new WeakSet();
+const insertedCssKeys = new WeakMap();
 
 function persistSoon() {
   clearTimeout(saveTimer);
@@ -52,10 +55,10 @@ function persistNow() {
 }
 
 function chromeUserAgent() {
-  return session.defaultSession
-    .getUserAgent()
-    .replace(/\sElectron\/\S+/g, "")
-    .replace(/\sx-video-window\/\S+/gi, "");
+  const base = session.defaultSession.getUserAgent();
+  const chrome = (base.match(/Chrome\/[\d.]+/) || ["Chrome/134.0.0.0"])[0];
+  const safari = (base.match(/Safari\/[\d.]+/) || ["Safari/537.36"])[0];
+  return `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) ${chrome} ${safari}`;
 }
 
 function sendState() {
@@ -72,10 +75,29 @@ function publicState() {
   };
 }
 
+async function removeFocusCss(contents) {
+  const keys = insertedCssKeys.get(contents) || [];
+  for (const key of keys) {
+    try {
+      await contents.removeInsertedCSS(key);
+    } catch {
+      // already gone
+    }
+  }
+  insertedCssKeys.set(contents, []);
+}
+
 async function injectGuest(contents) {
   if (!contents || contents.isDestroyed()) return;
+  const url = contents.getURL();
+  if (!url || url === "about:blank" || isAuthUrl(url)) {
+    await removeFocusCss(contents);
+    return;
+  }
   try {
-    await contents.insertCSS(injectCss);
+    await removeFocusCss(contents);
+    const key = await contents.insertCSS(injectCss);
+    insertedCssKeys.set(contents, key ? [key] : []);
     const compact = state?.compact !== false;
     await contents.executeJavaScript(
       `${injectJs}\nwindow.__xvwSetCompact(${compact ? "true" : "false"});`,
@@ -99,11 +121,17 @@ function attachGuestGuards(contents) {
   });
 
   contents.on("will-navigate", (event, url) => {
-    if (!isAllowedNavigation(url)) event.preventDefault();
+    if (!isAllowedNavigation(url)) {
+      console.warn("[xvw] blocked navigation:", url);
+      event.preventDefault();
+    }
   });
 
   contents.on("will-redirect", (event, url) => {
-    if (!isAllowedNavigation(url)) event.preventDefault();
+    if (!isAllowedNavigation(url)) {
+      console.warn("[xvw] blocked redirect:", url);
+      event.preventDefault();
+    }
   });
 
   contents.setWindowOpenHandler(({ url }) => {
@@ -132,9 +160,30 @@ function resolveOpen(text) {
   if (!isAllowedNavigation(parsed.loadUrl)) {
     return { ok: false, error: "That link is not allowed in this app." };
   }
-  state.lastUrl = parsed.loadUrl;
-  persistSoon();
+  if (!isAuthUrl(parsed.loadUrl)) {
+    state.lastUrl = parsed.loadUrl;
+    persistSoon();
+  }
   return parsed;
+}
+
+function openSignInWindow() {
+  if (loginSession?.window && !loginSession.window.isDestroyed()) {
+    loginSession.window.focus();
+    return { ok: true };
+  }
+
+  loginSession = createLoginWindow({
+    partition: PARTITION,
+    userAgent: chromeUserAgent(),
+    onComplete: (reason) => {
+      loginSession = null;
+      if (reason === "signed-in" || reason === "done") {
+        mainWindow?.webContents.send("signin-complete");
+      }
+    },
+  });
+  return { ok: true };
 }
 
 function createMenu() {
@@ -163,12 +212,7 @@ function createMenu() {
         },
         {
           label: "Sign in to X",
-          click: () => {
-            const result = resolveOpen(SIGN_IN_URL);
-            if (result.ok && mainWindow) {
-              mainWindow.webContents.send("open-load-url", result);
-            }
-          },
+          click: () => openSignInWindow(),
         },
         { type: "separator" },
         isMac ? { role: "close" } : { role: "quit" },
@@ -197,7 +241,7 @@ function createMenu() {
           click: (item) => {
             state.compact = item.checked;
             persistSoon();
-            if (guestContents && !guestContents.isDestroyed()) {
+            if (guestContents && !guestContents.isDestroyed() && !isAuthUrl(guestContents.getURL())) {
               guestContents.executeJavaScript(
                 `window.__xvwSetCompact(${item.checked ? "true" : "false"})`,
                 true
@@ -306,7 +350,12 @@ function createWindow() {
 
   mainWindow.on("resize", persistSoon);
   mainWindow.on("move", persistSoon);
-  mainWindow.on("close", persistNow);
+  mainWindow.on("close", () => {
+    persistNow();
+    if (loginSession?.window && !loginSession.window.isDestroyed()) {
+      loginSession.window.close();
+    }
+  });
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
@@ -324,6 +373,14 @@ function registerIpc() {
     compact: state?.compact !== false,
   }));
 
+  ipcMain.handle("open-sign-in", () => openSignInWindow());
+
+  ipcMain.handle("login-done", () => {
+    loginSession?.done();
+  });
+
+  ipcMain.handle("is-auth-url", (_event, url) => isAuthUrl(url));
+
   ipcMain.handle("open-url", (_event, text) => resolveOpen(text));
 
   ipcMain.handle("paste-and-open", () => resolveOpen(clipboard.readText()));
@@ -340,7 +397,7 @@ function registerIpc() {
   ipcMain.handle("set-compact", async (_event, value) => {
     state.compact = Boolean(value);
     persistSoon();
-    if (guestContents && !guestContents.isDestroyed()) {
+    if (guestContents && !guestContents.isDestroyed() && !isAuthUrl(guestContents.getURL())) {
       try {
         await guestContents.executeJavaScript(
           `window.__xvwSetCompact(${state.compact ? "true" : "false"})`,
@@ -354,7 +411,7 @@ function registerIpc() {
   });
 
   ipcMain.handle("remember-url", (_event, url) => {
-    if (typeof url === "string" && isAllowedNavigation(url)) {
+    if (typeof url === "string" && isAllowedNavigation(url) && !isAuthUrl(url)) {
       state.lastUrl = url;
       persistSoon();
     }

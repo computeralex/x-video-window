@@ -17,15 +17,18 @@ const SUFFIXES = [
   "twitter.co",
   "twitpic.com",
   "hcaptcha.com",
+  "recaptcha.net",
 ];
 
 const EXACT_HOSTS = new Set([
   "accounts.google.com",
+  "accounts.youtube.com",
   "appleid.apple.com",
   "idmsa.apple.com",
   "challenges.cloudflare.com",
   "js.hcaptcha.com",
   "newassets.hcaptcha.com",
+  "www.recaptcha.net",
 ]);
 
 function hostnameOf(urlString) {
