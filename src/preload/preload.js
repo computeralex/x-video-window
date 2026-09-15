@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("xvw", {
   platform: process.platform,
   getState: () => ipcRenderer.invoke("get-state"),
   getFocusAssets: () => ipcRenderer.invoke("get-focus-assets"),
+  openUrl: (url) => ipcRenderer.invoke("open-url", url),
   openSignIn: () => ipcRenderer.invoke("open-sign-in"),
   isAuthUrl: (url) => ipcRenderer.invoke("is-auth-url", url),
   pasteAndOpen: () => ipcRenderer.invoke("paste-and-open"),
