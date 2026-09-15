@@ -1,12 +1,17 @@
 "use strict";
 
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 const {
   unwrapCustomScheme,
   parseIncoming,
+  parseIncomingArg,
   firstIncomingFromArgv,
   looksLikeIncoming,
+  extractUrlFromLinkFile,
 } = require("../src/main/incoming-url");
 
 describe("incoming-url", () => {
@@ -68,5 +73,32 @@ describe("incoming-url", () => {
     assert.equal(firstIncomingFromArgv(["electron", ".", "--no-sandbox"]), null);
     assert.equal(looksLikeIncoming("/workspace"), false);
     assert.equal(looksLikeIncoming("--disable-gpu"), false);
+  });
+
+  it("reads Safari webloc and Internet Shortcut files (Open With)", () => {
+    const webloc = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>URL</key>
+  <string>https://x.com/i/broadcasts/1AxRnZbVpjaxl?s=20</string>
+</dict></plist>`;
+    assert.equal(
+      extractUrlFromLinkFile(webloc),
+      "https://x.com/i/broadcasts/1AxRnZbVpjaxl?s=20"
+    );
+    const parsed = parseIncoming(webloc);
+    assert.equal(parsed.ok, true);
+    assert.match(parsed.loadUrl, /broadcasts\/1AxRnZbVpjaxl/);
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "xvw-webloc-"));
+    const file = path.join(dir, "clip.webloc");
+    fs.writeFileSync(file, webloc);
+    const fromArg = parseIncomingArg(file);
+    assert.equal(fromArg.ok, true);
+    assert.match(fromArg.loadUrl, /broadcasts\/1AxRnZbVpjaxl/);
+    const argv = firstIncomingFromArgv(["electron", ".", file]);
+    assert.ok(argv);
+    assert.match(argv.loadUrl, /broadcasts\/1AxRnZbVpjaxl/);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

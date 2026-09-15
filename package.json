@@ -76,7 +76,8 @@
             "CFBundleTypeRole": "Viewer",
             "LSItemContentTypes": [
               "public.url",
-              "public.url-name"
+              "public.url-name",
+              "com.apple.web-internet-location"
             ],
             "LSHandlerRank": "Alternate"
           }

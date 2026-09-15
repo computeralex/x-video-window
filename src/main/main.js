@@ -24,6 +24,7 @@ const { editMenuTemplate } = require("./edit-menu");
 const {
   CUSTOM_SCHEME,
   parseIncoming,
+  parseIncomingArg,
   firstIncomingFromArgv,
 } = require("./incoming-url");
 
@@ -574,6 +575,11 @@ if (!gotSingleInstanceLock) {
 app.on("open-url", (event, url) => {
   event.preventDefault();
   deliverIncoming(parseIncoming(url));
+});
+
+app.on("open-file", (event, filePath) => {
+  event.preventDefault();
+  deliverIncoming(parseIncomingArg(filePath));
 });
 
 app.whenReady().then(() => {

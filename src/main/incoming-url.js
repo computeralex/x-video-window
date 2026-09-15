@@ -5,12 +5,15 @@
  *
  * Custom scheme: xvw:https://x.com/…  and  xvw://https://x.com/…
  * Query form:    xvw:open?url=https%3A%2F%2Fx.com%2F…
+ * Link files:    Finder/Safari .webloc and Windows-style .url (Open With)
  *
- * We do not claim http(s) as the default browser. macOS Share sheets list
- * Share Extensions; this app registers a protocol + public.url Open With
- * handler instead (see README).
+ * macOS Share via lists Share Extensions (.appex), not ordinary apps.
+ * This repo does not ship a signed appex (needs Xcode + Developer ID).
+ * Practical first-class path: xvw: protocol + Open With + a Shortcuts
+ * share-sheet wrapper (see README).
  */
 
+const fs = require("node:fs");
 const { parseXUrl } = require("./parse-url");
 
 const CUSTOM_SCHEME = "xvw";
@@ -33,18 +36,50 @@ function unwrapCustomScheme(text) {
   return rest;
 }
 
+function isLinkFilePath(raw) {
+  return /\.(webloc|url)$/i.test(String(raw || "").trim());
+}
+
+function extractUrlFromLinkFile(text) {
+  const src = String(text || "");
+  const plist = src.match(/<key>\s*URL\s*<\/key>\s*<string>([^<]+)<\/string>/i);
+  if (plist) return plist[1].trim();
+  const ini = src.match(/^\s*URL\s*=\s*(\S+)/im);
+  if (ini) return ini[1].trim();
+  return "";
+}
+
 function looksLikeIncoming(raw) {
   const s = String(raw || "").trim();
   if (!s) return false;
   if (/^--(?:url|open-url|open)=/i.test(s)) return true;
   if (/^xvw:/i.test(s)) return true;
   if (/^https?:\/\//i.test(s)) return true;
+  if (isLinkFilePath(s)) return true;
   if (/(?:^|\/\/)(?:www\.)?(?:mobile\.)?(?:x\.com|twitter\.com)\//i.test(s)) return true;
   return false;
 }
 
 function parseIncoming(text) {
-  return parseXUrl(unwrapCustomScheme(text));
+  const unwrapped = unwrapCustomScheme(text);
+  if (/<key>\s*URL\s*<\/key>/i.test(unwrapped) || /\[InternetShortcut\]/i.test(unwrapped)) {
+    const nested = extractUrlFromLinkFile(unwrapped);
+    if (nested) return parseXUrl(nested);
+  }
+  return parseXUrl(unwrapped);
+}
+
+function parseIncomingArg(raw) {
+  const s = String(raw || "").trim();
+  if (isLinkFilePath(s)) {
+    try {
+      const fromFile = extractUrlFromLinkFile(fs.readFileSync(s, "utf8"));
+      if (fromFile) return parseIncoming(fromFile);
+    } catch {
+      // fall through to parse the path as text
+    }
+  }
+  return parseIncoming(s);
 }
 
 function firstIncomingFromArgv(argv) {
@@ -54,12 +89,12 @@ function firstIncomingFromArgv(argv) {
     if (s.startsWith("--")) {
       const match = s.match(/^--(?:url|open-url|open)=(.*)$/i);
       if (!match) continue;
-      const parsed = parseIncoming(match[1]);
+      const parsed = parseIncomingArg(match[1]);
       if (parsed.ok) return parsed;
       continue;
     }
     if (!looksLikeIncoming(s)) continue;
-    const parsed = parseIncoming(s);
+    const parsed = parseIncomingArg(s);
     if (parsed.ok) return parsed;
   }
   return null;
@@ -68,7 +103,10 @@ function firstIncomingFromArgv(argv) {
 module.exports = {
   CUSTOM_SCHEME,
   unwrapCustomScheme,
+  extractUrlFromLinkFile,
+  isLinkFilePath,
   looksLikeIncoming,
   parseIncoming,
+  parseIncomingArg,
   firstIncomingFromArgv,
 };
