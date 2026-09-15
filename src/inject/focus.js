@@ -85,16 +85,20 @@
       }
       html.xvw-theater .xvw-player-root video,
       html.xvw-theater video.xvw-video {
-        position: fixed !important;
+        position: absolute !important;
         inset: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         max-width: none !important;
         max-height: none !important;
         object-fit: contain !important;
         background: #000 !important;
-        z-index: 2147483646 !important;
+        z-index: 0 !important;
         transform: none !important;
+      }
+      /* X’s mute/volume/seek overlay is a sibling of <video>; keep it on top. */
+      html.xvw-theater .xvw-player-root > :not(video) {
+        z-index: 2 !important;
       }
       html.xvw-theater .xvw-hide-chrome {
         display: none !important;
@@ -192,12 +196,28 @@
     return videos[0];
   }
 
+  function isPlayerControl(el) {
+    if (!el || el.nodeType !== 1) return false;
+    const label = `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`.toLowerCase();
+    if (/mute|unmute|volume|play|pause|seek|scrub|fullscreen|full screen/.test(label)) {
+      return true;
+    }
+    return Boolean(
+      el.querySelector &&
+        el.querySelector(
+          "[aria-label='Unmute'], [aria-label='Mute'], [aria-label='Play'], [aria-label='Pause'], [aria-label='Seek slider'], [aria-label*='olume'], [aria-label*='ull screen'], [aria-label*='ullscreen']"
+        )
+    );
+  }
+
   function findPlayerRoot(video) {
+    const parent = video.parentElement;
+    if (parent && isPlayerControl(parent)) return parent;
     const known = video.closest(
       '[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="previewInterstitial"]'
     );
     if (known) return known;
-    let el = video.parentElement;
+    let el = parent;
     let candidate = el || video;
     for (let i = 0; i < 10 && el && el !== document.body; i++) {
       const testid = el.getAttribute("data-testid") || "";
@@ -230,6 +250,7 @@
       for (const child of Array.from(el.children || [])) {
         if (keep.has(child)) continue;
         if (child.querySelector && child.querySelector("video")) continue;
+        if (isPlayerControl(child)) continue;
         const style = window.getComputedStyle(child);
         if (style.position === "absolute" || style.position === "fixed") continue;
         child.classList.add("xvw-hide-chrome");
