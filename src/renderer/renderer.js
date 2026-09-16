@@ -107,10 +107,14 @@ function isPlaying() {
 }
 
 function updateHistoryButtons() {
-  const backOk =
-    typeof els.player.canGoBack === "function" ? Boolean(els.player.canGoBack()) : false;
-  const forwardOk =
-    typeof els.player.canGoForward === "function" ? Boolean(els.player.canGoForward()) : false;
+  let backOk = false;
+  let forwardOk = false;
+  try {
+    backOk = typeof els.player.canGoBack === "function" && Boolean(els.player.canGoBack());
+    forwardOk = typeof els.player.canGoForward === "function" && Boolean(els.player.canGoForward());
+  } catch {
+    // webview not attached / no guest yet
+  }
   els.back.disabled = !backOk;
   els.forward.disabled = !forwardOk;
 }
@@ -290,14 +294,22 @@ els.signin.addEventListener("click", async () => {
 });
 
 els.back.addEventListener("click", () => {
-  if (typeof els.player.goBack === "function" && els.player.canGoBack && els.player.canGoBack()) {
-    els.player.goBack();
+  try {
+    if (typeof els.player.goBack === "function" && els.player.canGoBack && els.player.canGoBack()) {
+      els.player.goBack();
+    }
+  } catch {
+    // no history yet
   }
 });
 
 els.forward.addEventListener("click", () => {
-  if (typeof els.player.goForward === "function" && els.player.canGoForward && els.player.canGoForward()) {
-    els.player.goForward();
+  try {
+    if (typeof els.player.goForward === "function" && els.player.canGoForward && els.player.canGoForward()) {
+      els.player.goForward();
+    }
+  } catch {
+    // no history yet
   }
 });
 

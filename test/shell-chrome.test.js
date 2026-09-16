@@ -22,5 +22,6 @@ describe("shell chrome", () => {
     assert.doesNotMatch(styles, /\.transport/);
     assert.doesNotMatch(renderer, /updateTransport/);
     assert.match(renderer, /canGoForward/);
+    assert.match(renderer, /webview not attached/);
   });
 });
