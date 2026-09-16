@@ -25,9 +25,11 @@ describe("Focus theater assets", () => {
     assert.doesNotMatch(css, /html\.xvw-theater \[class\*="aspect-video"\]/);
     assert.doesNotMatch(preload, /\[class\*="aspect-video"\]/);
     assert.doesNotMatch(css, /html\.xvw-theater video \{/);
+    assert.doesNotMatch(css, /\.xvw-player-root video/);
+    assert.doesNotMatch(preload, /\.xvw-player-root video/);
+    assert.doesNotMatch(js, /classList\.add\("xvw-video"\)/);
     assert.doesNotMatch(js, /classList\.add\("xvw-neutralize"\)/);
-    assert.doesNotMatch(css, /html\.xvw-theater #react-root \{[\s\S]*?transform: none/);
-    assert.doesNotMatch(js, /video\.xvw-video \{[\s\S]*?transform: none/);
+    assert.match(js, /unpinIfBlanked/);
   });
 
   it("defaults compact/Focus on in the injected script unless the user turned it off", () => {

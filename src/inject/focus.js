@@ -106,17 +106,6 @@
         min-height: 0 !important;
         flex: 1 1 auto !important;
       }
-      html.xvw-theater .xvw-player-root video,
-      html.xvw-theater video.xvw-video {
-        width: 100% !important;
-        height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
-        object-fit: contain !important;
-      }
-      html.xvw-theater .xvw-player-root > :not(video) {
-        z-index: 2 !important;
-      }
       html.xvw-theater .xvw-hide-chrome,
       html.xvw-theater .xvw-hide-meta {
         display: none !important;
@@ -291,12 +280,13 @@
   }
 
   function hideNonVideoBranches(video) {
+    const root = findPlayerRoot(video) || video;
     const keep = new Set();
-    let node = video;
+    let node = root;
     while (node) {
       keep.add(node);
-      // X often reparents the <video> into a node we hid on an earlier
-      // pass. Never leave the playback ancestor chain display:none.
+      // Never hide the player or its ancestor chain. Do not walk inside
+      // the player — canvases and hover overlays live there.
       node.classList.remove("xvw-hide-chrome");
       node.classList.remove("xvw-hide-meta");
       node = node.parentElement;
@@ -304,10 +294,7 @@
     keep.forEach((el) => {
       for (const child of Array.from(el.children || [])) {
         if (keep.has(child)) continue;
-        if (isKeepOverlay(child)) {
-          child.classList.remove("xvw-hide-chrome");
-          continue;
-        }
+        if (child.querySelector && child.querySelector("video")) continue;
         child.classList.add("xvw-hide-chrome");
       }
     });
@@ -362,18 +349,29 @@
     if (!root) return false;
 
     document.documentElement.classList.add("xvw-theater");
-    video.classList.add("xvw-video");
     root.classList.add("xvw-player-root");
-    // Size layout ancestors only. Do not touch transform/filter/contain on
-    // <video> or its chain — that blanks hardware-decoded frames on Mac.
-    let el = video.parentElement;
+    // Grow layout around the player. Never restyle <video> itself —
+    // width/object-fit/transform on the media element blanks Mac frames.
+    let el = root.parentElement;
     while (el && el !== document.documentElement) {
       el.classList.add("xvw-fill-box");
       el = el.parentElement;
     }
     hideNonVideoBranches(video);
     hidePostChrome();
-    hideDecorativeMeta(root);
+
+    const widthBefore = video.videoWidth;
+    const unpinIfBlanked = () => {
+      if (window.__xvwCompact === false) return;
+      const v = pickVideo();
+      if (!v) return;
+      if (widthBefore > 0 && v.videoWidth === 0) {
+        document.querySelectorAll(".xvw-player-root").forEach((n) => n.classList.remove("xvw-player-root"));
+      }
+    };
+    window.setTimeout(unpinIfBlanked, 50);
+    window.setTimeout(unpinIfBlanked, 250);
+    window.setTimeout(unpinIfBlanked, 800);
     return true;
   }
 

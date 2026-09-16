@@ -84,12 +84,6 @@ function ensureEarlyCinema() {
       z-index: 2147483000 !important;
       background: #000 !important;
     }
-    html.xvw-theater .xvw-player-root video,
-    html.xvw-theater video.xvw-video {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain !important;
-    }
   `;
 }
 

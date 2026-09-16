@@ -117,12 +117,3 @@ html.xvw-theater .xvw-player-root {
   z-index: 2147483000 !important;
   background: #000 !important;
 }
-
-html.xvw-theater .xvw-player-root video,
-html.xvw-theater video.xvw-video {
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: contain !important;
-}
