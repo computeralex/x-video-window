@@ -66,12 +66,16 @@
         inset: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
+        min-width: 100vw !important;
+        min-height: 100vh !important;
         max-width: none !important;
         max-height: none !important;
+        aspect-ratio: auto !important;
         margin: 0 !important;
         padding: 0 !important;
         z-index: 2147483000 !important;
         background: #000 !important;
+        display: flex !important;
       }
       html.xvw-theater .xvw-fill-box {
         width: 100% !important;
@@ -106,9 +110,14 @@
       }
       html.xvw-theater .xvw-neutralize {
         transform: none !important;
+        translate: none !important;
+        rotate: none !important;
+        scale: none !important;
         filter: none !important;
         perspective: none !important;
         contain: none !important;
+        will-change: auto !important;
+        content-visibility: visible !important;
       }
     `
       : "";
@@ -246,12 +255,19 @@
     let node = video;
     while (node) {
       keep.add(node);
+      // X often reparents the <video> into a node we hid on an earlier
+      // pass. Never leave the playback ancestor chain display:none.
+      node.classList.remove("xvw-hide-chrome");
+      node.classList.remove("xvw-hide-meta");
       node = node.parentElement;
     }
     keep.forEach((el) => {
       for (const child of Array.from(el.children || [])) {
         if (keep.has(child)) continue;
-        if (child.querySelector && child.querySelector("video")) continue;
+        if (child.querySelector && child.querySelector("video")) {
+          child.classList.remove("xvw-hide-chrome");
+          continue;
+        }
         if (isPlayerControl(child)) continue;
         const style = window.getComputedStyle(child);
         if (style.position === "absolute" || style.position === "fixed") continue;
