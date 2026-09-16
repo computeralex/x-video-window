@@ -1,4 +1,7 @@
-/* Hide X chrome so the post / video is the focus. Auth flows are left alone in JS. */
+/* Hide X chrome so the post / video is the focus. Auth flows are left alone in JS.
+   New X (2026) dropped many data-testids; also target Tailwind aspect-video boxes.
+   html.xvw-theater is set from the guest preload on watch paths so first paint
+   is already cinema, not a scrolling status post. */
 
 header[role="banner"] {
   display: none !important;
@@ -49,4 +52,50 @@ body {
 
 video {
   outline: none !important;
+}
+
+html.xvw-theater,
+html.xvw-theater body,
+html.xvw-theater #react-root {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  background: #000 !important;
+}
+
+html.xvw-theater [data-testid="videoPlayer"],
+html.xvw-theater [data-testid="videoComponent"],
+html.xvw-theater [data-testid="previewInterstitial"],
+html.xvw-theater [class*="aspect-video"] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+  aspect-ratio: auto !important;
+  z-index: 2147483000 !important;
+  background: #000 !important;
+}
+
+html.xvw-theater [data-testid="videoPlayer"] video,
+html.xvw-theater [data-testid="videoComponent"] video,
+html.xvw-theater [class*="aspect-video"] video,
+html.xvw-theater video {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  background: #000 !important;
+}
+
+html.xvw-theater [data-testid="tweetText"],
+html.xvw-theater [data-testid="User-Name"],
+html.xvw-theater [data-testid="caret"],
+html.xvw-theater [data-testid^="UserAvatar-Container"],
+html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"] {
+  display: none !important;
 }

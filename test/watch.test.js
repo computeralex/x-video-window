@@ -12,6 +12,8 @@ describe("isWatchPath", () => {
     assert.equal(isWatchPath("/i/status/1949680387330027593"), true);
     assert.equal(isWatchPath("/SpaceX/status/1949680387330027593"), true);
     assert.equal(isWatchPath("/i/web/status/1814440131505598541"), true);
+    assert.equal(isWatchPath("/i/status/2099948470299750843/video/1"), true);
+    assert.equal(isWatchPath("/ForrestPKnight/status/2099948470299750843/video/1"), true);
   });
 
   it("does not treat home or auth paths as watch pages", () => {

@@ -63,7 +63,9 @@ function hostAllowed(hostname) {
 }
 
 function statusLoadUrl(id) {
-  return `https://x.com/i/status/${id}`;
+  // /video/1 is X’s media-expand path. Some sessions keep the lightbox;
+  // others redirect to /{user}/status/{id}. Theater still applies there.
+  return `https://x.com/i/status/${id}/video/1`;
 }
 
 function parseXUrl(input) {

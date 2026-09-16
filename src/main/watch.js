@@ -11,7 +11,7 @@ function isWatchPath(pathname) {
   if (/\/i\/spaces(?:\/|$)/i.test(p)) return true;
   if (/\/i\/live(?:\/|$)/i.test(p)) return true;
   if (/\/broadcasts(?:\/|$)/i.test(p)) return true;
-  if (/\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d+/i.test(p)) return true;
+  if (/\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d+(?:\/video\/\d+)?/i.test(p)) return true;
   return false;
 }
 

@@ -37,7 +37,7 @@ describe("incoming-url", () => {
 
     const status = parseIncoming("https://x.com/SpaceX/status/1949680387330027593");
     assert.equal(status.ok, true);
-    assert.equal(status.loadUrl, "https://x.com/i/status/1949680387330027593");
+    assert.equal(status.loadUrl, "https://x.com/i/status/1949680387330027593/video/1");
   });
 
   it("finds the first X URL in Electron argv (skips binary and app path)", () => {
@@ -59,14 +59,14 @@ describe("incoming-url", () => {
       "--url=xvw:https://x.com/i/status/1814440131505598541",
     ]);
     assert.ok(flagged);
-    assert.equal(flagged.loadUrl, "https://x.com/i/status/1814440131505598541");
+    assert.equal(flagged.loadUrl, "https://x.com/i/status/1814440131505598541/video/1");
 
     const scheme = firstIncomingFromArgv([
       "Unofficial 𝕏 (Twitter) Video Liberator",
       "xvw://https://twitter.com/user/status/1234567890123456789",
     ]);
     assert.ok(scheme);
-    assert.equal(scheme.loadUrl, "https://x.com/i/status/1234567890123456789");
+    assert.equal(scheme.loadUrl, "https://x.com/i/status/1234567890123456789/video/1");
   });
 
   it("ignores argv without a watch URL", () => {

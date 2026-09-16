@@ -31,7 +31,7 @@
       /\/i\/spaces(?:\/|$)/i.test(p) ||
       /\/i\/live(?:\/|$)/i.test(p) ||
       /\/broadcasts(?:\/|$)/i.test(p) ||
-      /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d+/i.test(p)
+      /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d+(?:\/video\/\d+)?/i.test(p)
     );
   }
 
@@ -224,7 +224,7 @@
     const parent = video.parentElement;
     if (parent && isPlayerControl(parent)) return parent;
     const known = video.closest(
-      '[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="previewInterstitial"]'
+      '[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="previewInterstitial"], [class*="aspect-video"]'
     );
     if (known) return known;
     let el = parent;
@@ -344,6 +344,7 @@
   window.__xvwApplyFocus = apply;
   window.__xvwSetCompact = function setCompact(value) {
     window.__xvwCompact = Boolean(value);
+    document.documentElement.dataset.xvwFocus = window.__xvwCompact ? "on" : "off";
     apply();
   };
   window.__xvwFillVideo = function fillVideo() {
