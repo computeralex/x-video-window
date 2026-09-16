@@ -16,6 +16,7 @@ describe("Focus theater assets", () => {
       assert.match(source, /aside:not\(:has\(video\)\)/);
       assert.match(source, /aria-label="Follow"/);
       assert.match(source, /aria-label="Like"/);
+      assert.match(source, /aria-label="Back"/);
     }
     assert.match(js, /hidePostChrome/);
     assert.match(css, /--layout-width-two-column:\s*100vw/);

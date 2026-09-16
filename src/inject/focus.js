@@ -64,6 +64,9 @@
       html.xvw-theater button[aria-label="Like"],
       html.xvw-theater button[aria-label="Bookmark"],
       html.xvw-theater button[aria-label="Share"],
+      html.xvw-theater button[aria-label="Back"],
+      html.xvw-theater a[aria-label="Back"],
+      html.xvw-theater h2,
       html.xvw-theater [aria-label="View count"],
       html.xvw-theater [aria-label="See all the replies"],
       html.xvw-theater .xvw-hide-chrome {
@@ -205,6 +208,25 @@
         el.classList.add("xvw-hide-chrome");
       }
     });
+    const video = pickVideo();
+    const article = video && video.closest("article");
+    if (article) {
+      const hideTowardPlayer = (el) => {
+        for (const child of Array.from(el.children || [])) {
+          if (child === video || (child.querySelector && child.querySelector(":scope > video"))) {
+            continue;
+          }
+          if (child.contains && child.contains(video)) {
+            hideTowardPlayer(child);
+            continue;
+          }
+          if (child.querySelector && child.querySelector("video")) continue;
+          if (isPlayerControl(child)) continue;
+          child.classList.add("xvw-hide-chrome");
+        }
+      };
+      hideTowardPlayer(article);
+    }
   }
 
   function applyTheater() {

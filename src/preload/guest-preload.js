@@ -64,6 +64,9 @@ function ensureEarlyCinema() {
     html.xvw-theater button[aria-label="Like"],
     html.xvw-theater button[aria-label="Bookmark"],
     html.xvw-theater button[aria-label="Share"],
+    html.xvw-theater button[aria-label="Back"],
+    html.xvw-theater a[aria-label="Back"],
+    html.xvw-theater h2,
     html.xvw-theater [aria-label="View count"],
     html.xvw-theater [aria-label="See all the replies"] {
       display: none !important;
