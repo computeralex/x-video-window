@@ -30,7 +30,7 @@ describe("incoming-url", () => {
     );
   });
 
-  it("parses Share / protocol / https watch links", () => {
+  it("parses protocol and https watch links", () => {
     const broadcast = parseIncoming("xvw:https://x.com/i/broadcasts/1AxRnZbVpjaxl?s=20");
     assert.equal(broadcast.ok, true);
     assert.match(broadcast.loadUrl, /x\.com\/i\/broadcasts\/1AxRnZbVpjaxl/);

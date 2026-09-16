@@ -2,6 +2,8 @@
 
 A desktop app that **overcomes X’s non-resizable, limited video player**. Paste an `x.com` / `twitter.com` post or broadcast into a freely resizable window, optionally keep it always-on-top, and sign in with your own X account when a video is private.
 
+**[Quick start → ONBOARDING.md](ONBOARDING.md)** — install, paste a link, resize, done.
+
 X’s browser UI keeps the player in a fixed layout. This app is a dedicated window: drag any edge, watch the video, ignore the timeline.
 
 The npm package and git repo stay `x-video-window`. The custom URL scheme stays `xvw:`. The full product name is **Unofficial 𝕏 (Twitter) Video Liberator** (Unicode mathematical double-struck capital 𝕏). Packaged macOS menus use the short form **𝕏 Video Liberator** (`CFBundleName`) only if the full string is too long for the menu bar or Dock; Finder/window titles still prefer the full name. The on-disk executable stays `x-video-window`.
@@ -15,12 +17,12 @@ The npm package and git repo stay `x-video-window`. The custom URL scheme stays 
 - **Fullscreen** uses the OS window (`BrowserWindow.setFullScreen`). Guest `requestFullscreen` on the `<video>` is not used — it is unreliable inside Electron’s X webview. Esc or the fullscreen button exits. Focus theater still fills the video when the window grows
 - **Sign in** opens a dedicated window (not the video webview) using the same local session, so X’s login UI is not covered by player CSS. Paste works in that window (Edit → Paste, right-click Paste, or ⌘/Ctrl+V) including the password field
 - Focus mode hides X’s sidebar, chat rail, left nav, and reply thread so status videos and live broadcasts fill the player. Hover the video for mute/volume/play — you do not turn Focus off to unmute
-- **Share via from X**: system share sheets do not list Electron apps (that needs a signed `.appex`). First-class path: a one-time Shortcuts action named **Unofficial 𝕏 (Twitter) Video Liberator** so **Share via → Unofficial 𝕏 (Twitter) Video Liberator** opens `xvw:{url}`. Also: Open With (`.webloc` / `public.url`), `xvw:` protocol, argv, drag-drop, Copy link + ⌘O (see below)
+- Open a video with **Open video**, paste, ⌘/Ctrl+O (clipboard), drag-drop of a URL or `.webloc`, **Open With** after install, or a `xvw:` link
 - Stays on X-related sites (and the hosts needed for login, captcha, and video CDNs)
 
 ## Install and run
 
-You need [Node.js 18+](https://nodejs.org/) (20 LTS is a good choice).
+New here? Follow the **[onboarding guide](ONBOARDING.md)** (about one screen). You need [Node.js 18+](https://nodejs.org/) (20 LTS is a good choice) for `npm start`. Packaged Mac builds are a `.dmg`.
 
 ```bash
 git clone https://github.com/computeralex/x-video-window.git
@@ -63,54 +65,16 @@ Artifacts land in `dist/`.
 - Apple silicon and Intel: electron-builder produces a build for the machine you compile on. On Apple silicon you can also pass `--universal` if you need both architectures: `npx electron-builder --mac --universal --publish never`.
 - Packaged display name is **Unofficial 𝕏 (Twitter) Video Liberator**. `CFBundleName` is **𝕏 Video Liberator** so the Apple menu / Dock label can stay readable if the full name truncates.
 
-## Share via from X (macOS) vs Open With
+## Open a video
 
-The goal is: you hit **Share via** on a post or broadcast in X (or Safari/Chrome Share) and this app receives the URL.
+Copy a post or broadcast URL from X, then:
 
-Apple’s share sheet only lists **Share Extensions** (`.appex`) and Shortcuts that opted into the sheet. A vanilla Electron `.app` cannot appear there as **Unofficial 𝕏 (Twitter) Video Liberator** without a signed native extension. Shipping that `.appex` needs Xcode, an Apple Developer identity, and a Mac build — this Linux environment cannot produce or sign one, so this repo does **not** embed an appex.
+- **Open video** and paste, or press **⌘/Ctrl+O** to load the clipboard
+- Drag a URL (or a `.webloc`) onto the window
+- **Open With** this app after you install the packaged build (it registers `xvw:`, `public.url`, and `.webloc`; it does not become your default browser)
+- Pass a link on the command line: `open 'xvw:https://x.com/…'` or `npx electron . --url=https://x.com/…`
 
-The first-class path we *do* ship (no Xcode):
-
-### 1. Put this app on the Share sheet (one-time Shortcuts)
-
-This is the practical equivalent of a Share Extension for Safari, Chrome, and X’s **Share via** when they open the system sheet.
-
-1. Install the packaged Mac app and launch it once (registers `xvw:`).
-2. Open **Shortcuts** → **+** → name it `Unofficial 𝕏 (Twitter) Video Liberator`.
-3. **Receive** → URLs (and/or Safari web pages).
-4. **Run Shell Script** (or **Open URLs**):
-
-   ```bash
-   open "xvw:$1"
-   ```
-
-   Pass the shortcut input as the argument. Input: URLs. Shell: `/bin/zsh`.
-5. Shortcut details (ⓘ) → enable **Show in Share Sheet** and **Pin in Menu Bar** if you want.
-6. From X or the browser: **Share via** → **Unofficial 𝕏 (Twitter) Video Liberator**. The running player loads the link (`open-url` / second-instance).
-
-X’s *in-page* Share menu (Copy link, Send via Direct Message, …) is X’s own UI — it will not list this app. Use **Share via…** so the system sheet opens, or **Copy link** (below).
-
-### 2. Open With (always available after install)
-
-The packaged app registers `xvw:`, `public.url`, and `com.apple.web-internet-location` (`.webloc`). It does **not** steal `http`/`https` as your default browser.
-
-| Place | What you see |
-| --- | --- |
-| X / Safari / Chrome **Share via** system sheet | Not the app name. Your **Unofficial 𝕏 (Twitter) Video Liberator** Shortcut is the share target. |
-| Finder or browser **Open With** on a link / `.webloc` | **Unofficial 𝕏 (Twitter) Video Liberator** |
-| Share via → **Copy link**, then this app | **Open video** or ⌘O |
-| Drag an `x.com` URL onto the window | Loads it |
-| `open 'xvw:https://x.com/…'` | Loads it |
-
-Linux packages register `x-scheme-handler/xvw`. This VM can test argv / second-instance / `xvw:` / `.webloc` parsing; it cannot show the macOS Share sheet.
-
-Dev / Linux:
-
-```bash
-# first launch, or when the app is already running (second instance forwards the URL)
-npx electron . --no-sandbox --url=https://x.com/i/broadcasts/1AxRnZbVpjaxl
-npx electron . --no-sandbox 'xvw:https://x.com/i/status/1814440131505598541'
-```
+Optional: a Shortcuts action that runs `open "xvw:$1"` can send links here if you want that yourself. There is no system Share sheet integration and no Share Extension in this app.
 
 ## How it works
 

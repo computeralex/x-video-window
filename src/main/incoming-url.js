@@ -1,16 +1,12 @@
 "use strict";
 
 /**
- * Incoming watch URLs from Share / Open With / protocol / CLI / drag-drop.
+ * Incoming watch URLs from Open video / paste / Open With / protocol /
+ * CLI / drag-drop.
  *
  * Custom scheme: xvw:https://x.com/…  and  xvw://https://x.com/…
  * Query form:    xvw:open?url=https%3A%2F%2Fx.com%2F…
  * Link files:    Finder/Safari .webloc and Windows-style .url (Open With)
- *
- * macOS Share via lists Share Extensions (.appex), not ordinary apps.
- * This repo does not ship a signed appex (needs Xcode + Developer ID).
- * Practical first-class path: xvw: protocol + Open With + a Shortcuts
- * share-sheet wrapper (see README).
  */
 
 const fs = require("node:fs");
