@@ -12,14 +12,21 @@
   </head>
   <body>
     <div class="edge-hot" id="edge-hot" aria-hidden="true"></div>
-    <div class="edge-hot-bottom" id="edge-hot-bottom" aria-hidden="true"></div>
     <header class="toolbar" id="toolbar">
       <div class="traffic-spacer" aria-hidden="true"></div>
-      <button class="icon-btn" id="back-btn" title="Back" aria-label="Back">
+      <button class="icon-btn" id="back-btn" title="Back" aria-label="Back" disabled>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
           <path
             fill="currentColor"
             d="M15.5 5.5 8 12l7.5 6.5 1.4-1.6L11.2 12l5.7-4.9z"
+          />
+        </svg>
+      </button>
+      <button class="icon-btn" id="forward-btn" title="Forward" aria-label="Forward" disabled>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8.5 5.5 16 12l-7.5 6.5-1.4-1.6L12.8 12 7.1 7.1z"
           />
         </svg>
       </button>
@@ -33,6 +40,9 @@
         Sign in
       </button>
       <div class="toolbar-grow" aria-hidden="true"></div>
+      <button class="text-btn" id="compact-btn" title="Hide the post so the video fills the window" aria-label="Focus" aria-pressed="true">
+        Focus
+      </button>
       <button class="icon-btn" id="pin-btn" title="Always on top" aria-label="Always on top" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
           <path
@@ -46,14 +56,6 @@
           <path
             fill="currentColor"
             d="M3 3h7v2H5v5H3V3zm11 0h7v7h-2V5h-5V3zM3 14h2v5h5v2H3v-7zm16 0h2v7h-7v-2h5v-5z"
-          />
-        </svg>
-      </button>
-      <button class="icon-btn" id="compact-btn" title="Focus: hide the post and fill the window with video (on by default)" aria-label="Focus video" aria-pressed="true">
-        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-          <path
-            fill="currentColor"
-            d="M4 6h16v2H4V6zm2 5h12v2H6v-2zm3 5h6v2H9v-2z"
           />
         </svg>
       </button>
@@ -83,7 +85,7 @@
           <p class="hint">
             Keyboard: ⌘/Ctrl+L open video · ⌘/Ctrl+O clipboard ·
             ⌘/Ctrl+Shift+T always on top · F8 fullscreen · Esc exit fullscreen ·
-            F1 help · move to the top edge for the toolbar (F11 locks it hidden)
+            F1 help · hover the top edge for Back, Forward, and Focus
           </p>
         </div>
       </section>
@@ -123,9 +125,10 @@
         <ul>
           <li><strong>Links:</strong> x.com and twitter.com status, video, and <code>/i/status</code> URLs.</li>
           <li><strong>Sign in:</strong> opens a dedicated window with your X account. The session is shared with the player; credentials are never scraped.</li>
-          <li><strong>Playback:</strong> hover the bottom for play/pause, seek, and mute/volume. The same video reopens near where you left off (not live broadcasts).</li>
-          <li><strong>Fullscreen:</strong> F8 or the corners button — true window fullscreen (Esc to exit). Video stays in the in-window theater used by Focus.</li>
-          <li><strong>Focus:</strong> on by default for videos (not live). Hides the post, follow, replies, and engagement so the video fills the window. Toggle it off to show the tweet again.</li>
+          <li><strong>Playback:</strong> hover the video for X’s own play, seek, and mute controls. The same video reopens near where you left off (not live broadcasts).</li>
+          <li><strong>Fullscreen:</strong> F8 or the corners button — true window fullscreen (Esc to exit).</li>
+          <li><strong>Focus:</strong> labeled in the top hover bar, on by default. Hides the post, follow, replies, and engagement so the video fills the window. Toggle it off to show the tweet again.</li>
+          <li><strong>Navigate:</strong> Back and Forward in the top hover bar follow the embedded X page history.</li>
           <li><strong>Open:</strong> Open video, paste, ⌘/Ctrl+O, drag-drop, Open With, or a <code>xvw:</code> link.</li>
           <li><strong>Private videos:</strong> stay signed in. Closing the app does not log you out.</li>
         </ul>
@@ -134,13 +137,6 @@
       </div>
     </div>
 
-    <div class="transport hidden" id="transport">
-      <button type="button" class="icon-btn" id="play-btn" title="Play" aria-label="Play">▶</button>
-      <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Seek" />
-      <span class="time-label" id="time-label">0:00</span>
-      <button type="button" class="icon-btn" id="mute-transport" title="Mute" aria-label="Mute">🔇</button>
-      <input id="volume" type="range" min="0" max="100" value="100" step="1" aria-label="Volume" />
-    </div>
     <div class="toast hidden" id="toast" role="status"></div>
     <script src="renderer.js"></script>
   </body>

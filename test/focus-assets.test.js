@@ -10,18 +10,24 @@ const js = fs.readFileSync(path.join(__dirname, "../src/inject/focus.js"), "utf8
 const preload = fs.readFileSync(path.join(__dirname, "../src/preload/guest-preload.js"), "utf8");
 
 describe("Focus theater assets", () => {
-  it("hides the tweet sidebar, follow, replies, and engagement in default theater", () => {
+  it("hides tweet chrome only on nodes that do not contain the player", () => {
     for (const source of [css, js, preload]) {
       assert.match(source, /layout-width-right/);
-      assert.match(source, /aria-label="Reply"/);
-      assert.match(source, /aria-label="Like"/);
+      assert.match(source, /aside:not\(:has\(video\)\)/);
       assert.match(source, /aria-label="Follow"/);
-      assert.match(source, /aside/);
+      assert.match(source, /aria-label="Like"/);
     }
-    assert.match(js, /isKeepOverlay/);
     assert.match(js, /hidePostChrome/);
-    assert.match(css, /transform: none/);
-    assert.match(css, /contain: none/);
+    assert.match(css, /\.xvw-player-root/);
+  });
+
+  it("does not pin every aspect-video or blank the media layer with transform/filter", () => {
+    assert.doesNotMatch(css, /html\.xvw-theater \[class\*="aspect-video"\]/);
+    assert.doesNotMatch(preload, /\[class\*="aspect-video"\]/);
+    assert.doesNotMatch(css, /html\.xvw-theater video \{/);
+    assert.doesNotMatch(js, /classList\.add\("xvw-neutralize"\)/);
+    assert.doesNotMatch(css, /html\.xvw-theater #react-root \{[\s\S]*?transform: none/);
+    assert.doesNotMatch(js, /video\.xvw-video \{[\s\S]*?transform: none/);
   });
 
   it("defaults compact/Focus on in the injected script unless the user turned it off", () => {

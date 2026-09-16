@@ -416,7 +416,7 @@ function createMenu() {
           },
         },
         {
-          label: "Focus video (hide X chrome)",
+          label: "Focus (hide post)",
           type: "checkbox",
           checked: state.compact !== false,
           click: (item) => {

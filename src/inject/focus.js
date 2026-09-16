@@ -60,34 +60,31 @@
         max-height: 100% !important;
         overflow: hidden !important;
         background: #000 !important;
-        transform: none !important;
-        filter: none !important;
-        perspective: none !important;
-        contain: none !important;
-        will-change: auto !important;
-        backdrop-filter: none !important;
       }
-      html.xvw-theater aside,
-      html.xvw-theater nav,
-      html.xvw-theater [class*="layout-width-right"],
-      html.xvw-theater [class*="layout-width-rail"],
-      html.xvw-theater [aria-label="Follow"],
-      html.xvw-theater [aria-label="Following"],
-      html.xvw-theater [aria-label="Reply"],
-      html.xvw-theater [aria-label="Repost"],
-      html.xvw-theater [aria-label="Like"],
-      html.xvw-theater [aria-label="Bookmark"],
-      html.xvw-theater [aria-label="Share"],
+      html.xvw-theater aside:not(:has(video)),
+      html.xvw-theater nav:not(:has(video)),
+      html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
+      html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
+      html.xvw-theater button[aria-label="Follow"],
+      html.xvw-theater button[aria-label="Following"],
+      html.xvw-theater button[aria-label="Reply"],
+      html.xvw-theater button[aria-label="Repost"],
+      html.xvw-theater button[aria-label="Like"],
+      html.xvw-theater button[aria-label="Bookmark"],
+      html.xvw-theater button[aria-label="Share"],
       html.xvw-theater [aria-label="View count"],
-      html.xvw-theater [aria-label="See all the replies"],
-      html.xvw-theater [aria-label="Back"] {
+      html.xvw-theater [aria-label="See all the replies"] {
         display: none !important;
+      }
+      html.xvw-theater [class*="layout-width-two-column"],
+      html.xvw-theater [class*="layout-width-primary"],
+      html.xvw-theater main[role="main"] {
+        max-width: none !important;
+        width: 100% !important;
       }
       html.xvw-theater .xvw-player-root {
         position: fixed !important;
         inset: 0 !important;
-        left: 0 !important;
-        top: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
         min-width: 100vw !important;
@@ -97,12 +94,8 @@
         aspect-ratio: auto !important;
         margin: 0 !important;
         padding: 0 !important;
-        transform: none !important;
-        filter: none !important;
-        contain: none !important;
         z-index: 2147483000 !important;
         background: #000 !important;
-        display: flex !important;
       }
       html.xvw-theater .xvw-fill-box {
         width: 100% !important;
@@ -112,41 +105,21 @@
         min-width: 0 !important;
         min-height: 0 !important;
         flex: 1 1 auto !important;
-        transform: none !important;
-        filter: none !important;
-        contain: none !important;
       }
       html.xvw-theater .xvw-player-root video,
       html.xvw-theater video.xvw-video {
-        position: absolute !important;
-        inset: 0 !important;
         width: 100% !important;
         height: 100% !important;
         max-width: none !important;
         max-height: none !important;
         object-fit: contain !important;
-        background: #000 !important;
-        z-index: 0 !important;
-        transform: none !important;
       }
-      /* X’s mute/volume/seek overlay is a sibling of <video>; keep it on top. */
       html.xvw-theater .xvw-player-root > :not(video) {
         z-index: 2 !important;
       }
       html.xvw-theater .xvw-hide-chrome,
       html.xvw-theater .xvw-hide-meta {
         display: none !important;
-      }
-      html.xvw-theater .xvw-neutralize {
-        transform: none !important;
-        translate: none !important;
-        rotate: none !important;
-        scale: none !important;
-        filter: none !important;
-        perspective: none !important;
-        contain: none !important;
-        will-change: auto !important;
-        content-visibility: visible !important;
       }
     `
       : "";
@@ -391,10 +364,11 @@
     document.documentElement.classList.add("xvw-theater");
     video.classList.add("xvw-video");
     root.classList.add("xvw-player-root");
-    let el = video;
+    // Size layout ancestors only. Do not touch transform/filter/contain on
+    // <video> or its chain — that blanks hardware-decoded frames on Mac.
+    let el = video.parentElement;
     while (el && el !== document.documentElement) {
       el.classList.add("xvw-fill-box");
-      el.classList.add("xvw-neutralize");
       el = el.parentElement;
     }
     hideNonVideoBranches(video);

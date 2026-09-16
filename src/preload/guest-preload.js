@@ -1,8 +1,8 @@
 "use strict";
 
 /**
- * Isolated guest preload: cinema activity pings plus media snapshots
- * so the shell can persist resume position and drive the transport bar.
+ * Isolated guest preload: cinema chrome-hide plus media snapshots
+ * so the shell can persist resume position.
  */
 const { ipcRenderer } = require("electron");
 
@@ -56,49 +56,39 @@ function ensureEarlyCinema() {
       height: 100% !important;
       max-height: 100% !important;
       background: #000 !important;
-      transform: none !important;
-      filter: none !important;
-      contain: none !important;
-      perspective: none !important;
     }
-    html.xvw-theater aside,
-    html.xvw-theater nav,
-    html.xvw-theater [class*="layout-width-right"],
-    html.xvw-theater [class*="layout-width-rail"],
+    html.xvw-theater aside:not(:has(video)),
+    html.xvw-theater nav:not(:has(video)),
+    html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
+    html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
     html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
     html.xvw-theater [data-testid="tweetText"],
-    html.xvw-theater [aria-label="Follow"],
-    html.xvw-theater [aria-label="Following"],
-    html.xvw-theater [aria-label="Reply"],
-    html.xvw-theater [aria-label="Repost"],
-    html.xvw-theater [aria-label="Like"],
-    html.xvw-theater [aria-label="Bookmark"],
-    html.xvw-theater [aria-label="Share"],
+    html.xvw-theater button[aria-label="Follow"],
+    html.xvw-theater button[aria-label="Following"],
+    html.xvw-theater button[aria-label="Reply"],
+    html.xvw-theater button[aria-label="Repost"],
+    html.xvw-theater button[aria-label="Like"],
+    html.xvw-theater button[aria-label="Bookmark"],
+    html.xvw-theater button[aria-label="Share"],
     html.xvw-theater [aria-label="View count"],
     html.xvw-theater [aria-label="See all the replies"] {
       display: none !important;
     }
-    html.xvw-theater [class*="aspect-video"],
-    html.xvw-theater [data-testid="videoPlayer"],
-    html.xvw-theater [data-testid="videoComponent"] {
+    html.xvw-theater .xvw-player-root {
       position: fixed !important;
       inset: 0 !important;
-      left: 0 !important;
-      top: 0 !important;
       width: 100vw !important;
       height: 100vh !important;
       max-width: none !important;
       max-height: none !important;
-      transform: none !important;
-      contain: none !important;
       z-index: 2147483000 !important;
       background: #000 !important;
     }
-    html.xvw-theater video {
+    html.xvw-theater .xvw-player-root video,
+    html.xvw-theater video.xvw-video {
       width: 100% !important;
       height: 100% !important;
       object-fit: contain !important;
-      background: #000 !important;
     }
   `;
 }

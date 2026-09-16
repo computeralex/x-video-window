@@ -89,70 +89,17 @@ body.playing .edge-hot {
   z-index: 14;
 }
 
-body.playing .edge-hot-bottom {
-  display: block;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 28px;
-  z-index: 14;
-}
-
-.transport {
-  display: none;
-}
-
-body.playing .transport {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 13;
-  padding: 10px 12px 12px;
-  background: linear-gradient(to top, rgba(8, 8, 8, 0.9), rgba(8, 8, 8, 0.2) 80%, transparent);
-  transform: translateY(110%);
-  transition: transform 0.18s ease;
-  pointer-events: none;
-}
-
-body.playing.chrome-visible .transport {
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-body.playing .transport.hidden,
-.transport.hidden {
-  display: none;
-}
-
-#seek,
-#volume {
-  accent-color: var(--accent);
-}
-
-#seek {
-  flex: 1;
-  min-width: 80px;
-}
-
-#volume {
-  width: 72px;
-}
-
-.time-label {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-  min-width: 78px;
-  font-size: 12px;
-}
-
-.transport.live #seek {
+.icon-btn:disabled,
+.text-btn:disabled {
   opacity: 0.35;
-  pointer-events: none;
+  cursor: default;
+}
+
+.text-btn[aria-pressed="true"],
+.text-btn.on {
+  background: #12344a;
+  color: var(--accent);
+  border-color: #1d6aa3;
 }
 
 body.toolbar-hidden:not(.playing) .toolbar {

@@ -11,6 +11,7 @@ const els = {
   paste: document.getElementById("paste-btn"),
   signin: document.getElementById("signin-btn"),
   back: document.getElementById("back-btn"),
+  forward: document.getElementById("forward-btn"),
   pin: document.getElementById("pin-btn"),
   fill: document.getElementById("fill-btn"),
   compact: document.getElementById("compact-btn"),
@@ -21,13 +22,6 @@ const els = {
   player: document.getElementById("player"),
   toast: document.getElementById("toast"),
   winControls: document.getElementById("win-controls"),
-  transport: document.getElementById("transport"),
-  playBtn: document.getElementById("play-btn"),
-  seek: document.getElementById("seek"),
-  timeLabel: document.getElementById("time-label"),
-  muteTransport: document.getElementById("mute-transport"),
-  volume: document.getElementById("volume"),
-  edgeHotBottom: document.getElementById("edge-hot-bottom"),
 };
 
 const state = {
@@ -48,7 +42,6 @@ const state = {
     live: false,
     href: "",
   },
-  seeking: false,
   restoredKey: "",
   restoreInFlight: "",
 };
@@ -113,35 +106,13 @@ function isPlaying() {
   return Boolean(els.player && !els.player.classList.contains("hidden"));
 }
 
-function formatTime(seconds) {
-  const n = Math.max(0, Math.floor(Number(seconds) || 0));
-  const m = Math.floor(n / 60);
-  const s = n % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function updateTransport() {
-  const media = state.media;
-  const show = state.playing && Boolean(media.href);
-  els.transport.classList.toggle("hidden", !show);
-  els.transport.classList.toggle("live", Boolean(media.live));
-  els.playBtn.textContent = media.paused ? "▶" : "❚❚";
-  els.playBtn.title = media.paused ? "Play" : "Pause";
-  els.playBtn.setAttribute("aria-label", els.playBtn.title);
-  els.muteTransport.textContent = media.muted || media.volume === 0 ? "🔇" : "🔊";
-  els.muteTransport.title = media.muted ? "Unmute" : "Mute";
-  els.muteTransport.setAttribute("aria-label", els.muteTransport.title);
-  if (!state.seeking) {
-    const max = media.live ? 1 : Math.max(1, media.duration || 1);
-    els.seek.max = "1000";
-    els.seek.value = media.live ? "1000" : String(Math.round((media.currentTime / max) * 1000));
-  }
-  if (!document.activeElement || document.activeElement !== els.volume) {
-    els.volume.value = String(Math.round((media.muted ? 0 : media.volume) * 100));
-  }
-  els.timeLabel.textContent = media.live
-    ? "Live"
-    : `${formatTime(media.currentTime)} / ${formatTime(media.duration)}`;
+function updateHistoryButtons() {
+  const backOk =
+    typeof els.player.canGoBack === "function" ? Boolean(els.player.canGoBack()) : false;
+  const forwardOk =
+    typeof els.player.canGoForward === "function" ? Boolean(els.player.canGoForward()) : false;
+  els.back.disabled = !backOk;
+  els.forward.disabled = !forwardOk;
 }
 
 function setPlayingUi() {
@@ -158,13 +129,13 @@ function setPlayingUi() {
       live: false,
       href: "",
     };
-    updateTransport();
+    updateHistoryButtons();
     layoutPlayer();
     return;
   }
   bumpChrome();
   layoutPlayer();
-  updateTransport();
+  updateHistoryButtons();
 }
 
 function overlayBlocksChromeHide() {
@@ -219,7 +190,6 @@ async function applyMediaSnapshot(snap) {
     live: Boolean(snap.live),
     href: snap.href || state.media.href,
   };
-  updateTransport();
   if (snap.href) {
     window.xvw.rememberPlayback({
       href: snap.href,
@@ -280,16 +250,6 @@ async function maybeRestore(href, snap) {
   }
 }
 
-async function mediaCommand(cmd) {
-  try {
-    const result = await window.xvw.mediaCommand(cmd);
-    if (result?.ok) applyMediaSnapshot(result);
-    return result;
-  } catch {
-    return { ok: false };
-  }
-}
-
 async function openFromText(text) {
   const result = await window.xvw.openUrl(text);
   if (!result.ok) {
@@ -332,6 +292,12 @@ els.signin.addEventListener("click", async () => {
 els.back.addEventListener("click", () => {
   if (typeof els.player.goBack === "function" && els.player.canGoBack && els.player.canGoBack()) {
     els.player.goBack();
+  }
+});
+
+els.forward.addEventListener("click", () => {
+  if (typeof els.player.goForward === "function" && els.player.canGoForward && els.player.canGoForward()) {
+    els.player.goForward();
   }
 });
 
@@ -425,25 +391,6 @@ document.addEventListener("keydown", (event) => {
     setHelpOpen(!state.helpOpen);
     event.preventDefault();
   }
-
-  if (state.playing && !state.helpOpen && !state.openPrompt && document.activeElement !== els.input) {
-    if (event.code === "Space") {
-      mediaCommand({ togglePlay: true });
-      event.preventDefault();
-    }
-    if (event.key === "ArrowLeft") {
-      mediaCommand({ jump: -10 });
-      event.preventDefault();
-    }
-    if (event.key === "ArrowRight") {
-      mediaCommand({ jump: 10 });
-      event.preventDefault();
-    }
-    if (event.key.toLowerCase() === "m" && !meta) {
-      mediaCommand({ toggleMute: true });
-      event.preventDefault();
-    }
-  }
 });
 
 async function injectFocus() {
@@ -471,6 +418,7 @@ async function injectFocus() {
 
 els.player.addEventListener("dom-ready", () => {
   layoutPlayer();
+  updateHistoryButtons();
   injectFocus();
 });
 
@@ -479,6 +427,7 @@ els.player.addEventListener("did-navigate", (event) => {
     if (els.input) els.input.value = event.url;
     window.xvw.rememberUrl(event.url);
   }
+  updateHistoryButtons();
   injectFocus();
 });
 
@@ -487,6 +436,7 @@ els.player.addEventListener("did-navigate-in-page", (event) => {
     if (els.input) els.input.value = event.url;
     window.xvw.rememberUrl(event.url);
   }
+  updateHistoryButtons();
   injectFocus();
 });
 
@@ -554,39 +504,14 @@ async function boot() {
 
   document.addEventListener("mousemove", (event) => {
     if (!state.playing) return;
-    if (event.clientY <= 16 || event.clientY >= window.innerHeight - 28) bumpChrome();
+    if (event.clientY <= 16) bumpChrome();
   });
   els.toolbar.addEventListener("mousemove", () => {
     if (state.playing) bumpChrome();
   });
-  els.transport.addEventListener("mousemove", () => {
-    if (state.playing) bumpChrome();
-  });
   els.edgeHot.addEventListener("mouseenter", () => bumpChrome());
-  els.edgeHotBottom.addEventListener("mouseenter", () => bumpChrome());
   els.player.addEventListener("ipc-message", (event) => {
-    if (event.channel === "xvw-activity") bumpChrome();
     if (event.channel === "xvw-media") applyMediaSnapshot(event.args?.[0]);
-  });
-  els.playBtn.addEventListener("click", () => mediaCommand({ togglePlay: true }));
-  els.muteTransport.addEventListener("click", () => mediaCommand({ toggleMute: true }));
-  els.seek.addEventListener("pointerdown", () => {
-    state.seeking = true;
-  });
-  els.seek.addEventListener("input", () => {
-    if (state.media.live || !state.media.duration) return;
-    const next = (Number(els.seek.value) / 1000) * state.media.duration;
-    els.timeLabel.textContent = `${formatTime(next)} / ${formatTime(state.media.duration)}`;
-  });
-  const commitSeek = () => {
-    state.seeking = false;
-    if (state.media.live || !state.media.duration) return;
-    const next = (Number(els.seek.value) / 1000) * state.media.duration;
-    mediaCommand({ seek: next });
-  };
-  els.seek.addEventListener("change", commitSeek);
-  els.volume.addEventListener("input", () => {
-    mediaCommand({ volume: Number(els.volume.value) / 100 });
   });
   els.input.addEventListener("focus", () => {
     document.body.classList.add("chrome-visible");
