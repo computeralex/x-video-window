@@ -130,7 +130,7 @@ function lookupResume(href) {
   const record = playback.positions[key];
   const seconds = resumeSeconds(record, record?.duration);
   if (seconds) {
-    resumeLock = { key, seconds, until: Date.now() + 8000, released: false };
+    resumeLock = { key, seconds, until: Date.now() + 15000, released: false };
   }
   return { ok: Boolean(seconds), key, seconds, live: Boolean(record?.live) };
 }

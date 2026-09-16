@@ -416,7 +416,7 @@
     // X often rebuilds <video> and snaps currentTime back to 0 after the
     // first seek. Hold the target briefly and re-apply until it sticks.
     window.__xvwResumeTarget = target;
-    window.__xvwResumeUntil = Date.now() + 4500;
+    window.__xvwResumeUntil = Date.now() + 12000;
 
     function applyResume() {
       if (!window.__xvwResumeTarget || Date.now() > (window.__xvwResumeUntil || 0)) return false;

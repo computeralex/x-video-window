@@ -78,6 +78,8 @@ describe("resume rules", () => {
     assert.equal(shouldHoldExistingResume(lock, 8.1, 1000), false);
     assert.equal(shouldHoldExistingResume({ ...lock, released: true }, 14, 1000), false);
     assert.equal(shouldHoldExistingResume(lock, 14, 20_000), false);
+    const longLock = { key: "status:1", seconds: 8, until: 15_000, released: false };
+    assert.equal(shouldHoldExistingResume(longLock, 13, 12_000), true);
   });
 
   it("round-trips a VOD position on disk", () => {
