@@ -16,6 +16,9 @@ contextBridge.exposeInMainWorld("xvw", {
   toggleFullscreen: () => ipcRenderer.invoke("toggle-fullscreen"),
   setFullscreen: (value) => ipcRenderer.invoke("set-fullscreen", value),
   windowControl: (action) => ipcRenderer.invoke("window-control", action),
+  rememberPlayback: (payload) => ipcRenderer.invoke("remember-playback", payload),
+  getPlayback: (href) => ipcRenderer.invoke("get-playback", href),
+  mediaCommand: (cmd) => ipcRenderer.invoke("media-command", cmd),
   onState: (callback) => {
     const listener = (_event, state) => callback(state);
     ipcRenderer.on("state", listener);

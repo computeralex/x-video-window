@@ -21,6 +21,13 @@ const els = {
   player: document.getElementById("player"),
   toast: document.getElementById("toast"),
   winControls: document.getElementById("win-controls"),
+  transport: document.getElementById("transport"),
+  playBtn: document.getElementById("play-btn"),
+  seek: document.getElementById("seek"),
+  timeLabel: document.getElementById("time-label"),
+  muteTransport: document.getElementById("mute-transport"),
+  volume: document.getElementById("volume"),
+  edgeHotBottom: document.getElementById("edge-hot-bottom"),
 };
 
 const state = {
@@ -32,6 +39,17 @@ const state = {
   playing: false,
   chromePinned: false,
   fullscreen: false,
+  media: {
+    currentTime: 0,
+    duration: 0,
+    paused: true,
+    muted: false,
+    volume: 1,
+    live: false,
+    href: "",
+  },
+  seeking: false,
+  restoredKey: "",
 };
 
 const CHROME_IDLE_MS = 1600;
@@ -94,16 +112,58 @@ function isPlaying() {
   return Boolean(els.player && !els.player.classList.contains("hidden"));
 }
 
+function formatTime(seconds) {
+  const n = Math.max(0, Math.floor(Number(seconds) || 0));
+  const m = Math.floor(n / 60);
+  const s = n % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function updateTransport() {
+  const media = state.media;
+  const show = state.playing && Boolean(media.href);
+  els.transport.classList.toggle("hidden", !show);
+  els.transport.classList.toggle("live", Boolean(media.live));
+  els.playBtn.textContent = media.paused ? "▶" : "❚❚";
+  els.playBtn.title = media.paused ? "Play" : "Pause";
+  els.playBtn.setAttribute("aria-label", els.playBtn.title);
+  els.muteTransport.textContent = media.muted || media.volume === 0 ? "🔇" : "🔊";
+  els.muteTransport.title = media.muted ? "Unmute" : "Mute";
+  els.muteTransport.setAttribute("aria-label", els.muteTransport.title);
+  if (!state.seeking) {
+    const max = media.live ? 1 : Math.max(1, media.duration || 1);
+    els.seek.max = "1000";
+    els.seek.value = media.live ? "1000" : String(Math.round((media.currentTime / max) * 1000));
+  }
+  if (!document.activeElement || document.activeElement !== els.volume) {
+    els.volume.value = String(Math.round((media.muted ? 0 : media.volume) * 100));
+  }
+  els.timeLabel.textContent = media.live
+    ? "Live"
+    : `${formatTime(media.currentTime)} / ${formatTime(media.duration)}`;
+}
+
 function setPlayingUi() {
   state.playing = isPlaying();
   document.body.classList.toggle("playing", state.playing);
   if (!state.playing) {
     document.body.classList.add("chrome-visible");
+    state.media = {
+      currentTime: 0,
+      duration: 0,
+      paused: true,
+      muted: false,
+      volume: 1,
+      live: false,
+      href: "",
+    };
+    updateTransport();
     layoutPlayer();
     return;
   }
   bumpChrome();
   layoutPlayer();
+  updateTransport();
 }
 
 function overlayBlocksChromeHide() {
@@ -137,10 +197,78 @@ function bumpChrome() {
 function showPlayer(url) {
   els.empty.classList.add("hidden");
   els.player.classList.remove("hidden");
+  if (url && url !== state.media.href) {
+    state.restoredKey = "";
+  }
   setPlayingUi();
   if (url && els.input) els.input.value = url;
   if (els.player.getAttribute("src") !== url) {
     els.player.setAttribute("src", url);
+  }
+}
+
+async function applyMediaSnapshot(snap) {
+  if (!snap || typeof snap !== "object") return;
+  state.media = {
+    currentTime: Number(snap.currentTime) || 0,
+    duration: Number(snap.duration) || 0,
+    paused: Boolean(snap.paused),
+    muted: Boolean(snap.muted),
+    volume: Number.isFinite(snap.volume) ? snap.volume : 1,
+    live: Boolean(snap.live),
+    href: snap.href || state.media.href,
+  };
+  updateTransport();
+  if (snap.href) {
+    window.xvw.rememberPlayback({
+      href: snap.href,
+      currentTime: state.media.currentTime,
+      duration: state.media.duration,
+      live: state.media.live,
+    });
+    maybeRestore(snap.href, snap);
+  }
+}
+
+async function maybeRestore(href, snap) {
+  if (!href || snap.live || state.restoredKey === href) return;
+  if (!Number.isFinite(snap.duration) || snap.duration <= 0) return;
+  if (snap.currentTime >= 3) {
+    state.restoredKey = href;
+    return;
+  }
+  let resume;
+  try {
+    resume = await window.xvw.getPlayback(href);
+  } catch {
+    return;
+  }
+  if (!resume?.ok || !resume.seconds) {
+    state.restoredKey = href;
+    return;
+  }
+  state.restoredKey = href;
+  const attempts = [200, 700, 1400, 2200];
+  for (const wait of attempts) {
+    await new Promise((r) => setTimeout(r, wait));
+    try {
+      const result = await els.player.executeJavaScript(
+        `window.__xvwRestoreTime ? window.__xvwRestoreTime(${JSON.stringify(resume.seconds)}) : { ok: false }`
+      );
+      if (result?.ok || result?.live) break;
+    } catch {
+      // guest may still be loading
+    }
+  }
+}
+
+async function mediaCommand(cmd) {
+  try {
+    const result = await window.xvw.mediaCommand(cmd);
+    if (result?.ok) applyMediaSnapshot(result);
+    return result;
+  } catch {
+    return { ok: false };
   }
 }
 
@@ -279,6 +407,25 @@ document.addEventListener("keydown", (event) => {
     setHelpOpen(!state.helpOpen);
     event.preventDefault();
   }
+
+  if (state.playing && !state.helpOpen && !state.openPrompt && document.activeElement !== els.input) {
+    if (event.code === "Space") {
+      mediaCommand({ togglePlay: true });
+      event.preventDefault();
+    }
+    if (event.key === "ArrowLeft") {
+      mediaCommand({ jump: -10 });
+      event.preventDefault();
+    }
+    if (event.key === "ArrowRight") {
+      mediaCommand({ jump: 10 });
+      event.preventDefault();
+    }
+    if (event.key.toLowerCase() === "m" && !meta) {
+      mediaCommand({ toggleMute: true });
+      event.preventDefault();
+    }
+  }
 });
 
 async function injectFocus() {
@@ -386,14 +533,39 @@ async function boot() {
 
   document.addEventListener("mousemove", (event) => {
     if (!state.playing) return;
-    if (event.clientY <= 16) bumpChrome();
+    if (event.clientY <= 16 || event.clientY >= window.innerHeight - 28) bumpChrome();
   });
   els.toolbar.addEventListener("mousemove", () => {
     if (state.playing) bumpChrome();
   });
+  els.transport.addEventListener("mousemove", () => {
+    if (state.playing) bumpChrome();
+  });
   els.edgeHot.addEventListener("mouseenter", () => bumpChrome());
+  els.edgeHotBottom.addEventListener("mouseenter", () => bumpChrome());
   els.player.addEventListener("ipc-message", (event) => {
     if (event.channel === "xvw-activity") bumpChrome();
+    if (event.channel === "xvw-media") applyMediaSnapshot(event.args?.[0]);
+  });
+  els.playBtn.addEventListener("click", () => mediaCommand({ togglePlay: true }));
+  els.muteTransport.addEventListener("click", () => mediaCommand({ toggleMute: true }));
+  els.seek.addEventListener("pointerdown", () => {
+    state.seeking = true;
+  });
+  els.seek.addEventListener("input", () => {
+    if (state.media.live || !state.media.duration) return;
+    const next = (Number(els.seek.value) / 1000) * state.media.duration;
+    els.timeLabel.textContent = `${formatTime(next)} / ${formatTime(state.media.duration)}`;
+  });
+  const commitSeek = () => {
+    state.seeking = false;
+    if (state.media.live || !state.media.duration) return;
+    const next = (Number(els.seek.value) / 1000) * state.media.duration;
+    mediaCommand({ seek: next });
+  };
+  els.seek.addEventListener("change", commitSeek);
+  els.volume.addEventListener("input", () => {
+    mediaCommand({ volume: Number(els.volume.value) / 100 });
   });
   els.input.addEventListener("focus", () => {
     document.body.classList.add("chrome-visible");

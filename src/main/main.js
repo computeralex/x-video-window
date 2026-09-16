@@ -28,6 +28,12 @@ const {
   firstIncomingFromArgv,
 } = require("./incoming-url");
 const { PRODUCT_NAME } = require("./brand");
+const { mediaKeyFromUrl, resumeSeconds, shouldPersistPosition } = require("./playback");
+const {
+  loadPlaybackStore,
+  savePlaybackStore,
+  rememberPosition,
+} = require("./playback-store");
 
 const PARTITION = "persist:x-session";
 
@@ -48,6 +54,9 @@ let storePath = null;
 let saveTimer = null;
 let pendingIncoming = null;
 let maximizeFallback = false;
+let playbackPath = null;
+let playback = { version: 1, positions: {} };
+let playbackTimer = null;
 const guardedGuests = new WeakSet();
 const insertedCssKeys = new WeakMap();
 
@@ -63,6 +72,42 @@ function persistNow() {
     state.bounds = bounds;
   }
   saveStore(storePath, state);
+  persistPlaybackNow();
+}
+
+function persistPlaybackSoon() {
+  clearTimeout(playbackTimer);
+  playbackTimer = setTimeout(persistPlaybackNow, 250);
+}
+
+function persistPlaybackNow() {
+  if (!playbackPath) return;
+  savePlaybackStore(playbackPath, playback);
+}
+
+function rememberMediaPosition(href, snapshot) {
+  const key = mediaKeyFromUrl(href || snapshot?.href);
+  if (!key) return { ok: false };
+  const record = {
+    seconds: Number(snapshot?.currentTime) || 0,
+    duration: Number(snapshot?.duration) || 0,
+    live: Boolean(snapshot?.live),
+    updatedAt: Date.now(),
+  };
+  if (!shouldPersistPosition(record)) {
+    return { ok: true, saved: false, key };
+  }
+  playback = rememberPosition(playback, key, record);
+  persistPlaybackSoon();
+  return { ok: true, saved: true, key };
+}
+
+function lookupResume(href) {
+  const key = mediaKeyFromUrl(href);
+  if (!key) return { ok: false, seconds: 0 };
+  const record = playback.positions[key];
+  const seconds = resumeSeconds(record, record?.duration);
+  return { ok: Boolean(seconds), key, seconds, live: Boolean(record?.live) };
 }
 
 function chromeUserAgent() {
@@ -468,6 +513,18 @@ function createWindow() {
   mainWindow.on("resize", persistSoon);
   mainWindow.on("move", persistSoon);
   mainWindow.on("close", () => {
+    if (guestContents && !guestContents.isDestroyed()) {
+      guestContents
+        .executeJavaScript(
+          `window.__xvwMediaSnapshot ? window.__xvwMediaSnapshot() : null`,
+          true
+        )
+        .then((snap) => {
+          if (snap) rememberMediaPosition(snap.href, snap);
+          persistPlaybackNow();
+        })
+        .catch(() => {});
+    }
     persistNow();
     if (loginSession?.window && !loginSession.window.isDestroyed()) {
       loginSession.window.close();
@@ -548,6 +605,29 @@ function registerIpc() {
   ipcMain.handle("toggle-fullscreen", () => toggleAppFullscreen());
   ipcMain.handle("set-fullscreen", (_event, value) => setAppFullscreen(Boolean(value)));
 
+  ipcMain.handle("remember-playback", (_event, payload) => {
+    const href = typeof payload?.href === "string" ? payload.href : "";
+    return rememberMediaPosition(href, payload);
+  });
+
+  ipcMain.handle("get-playback", (_event, href) => lookupResume(href));
+
+  ipcMain.handle("media-command", async (_event, cmd) => {
+    if (!guestContents || guestContents.isDestroyed()) {
+      return { ok: false, error: "No video yet." };
+    }
+    try {
+      const result = await guestContents.executeJavaScript(
+        `window.__xvwMediaCommand ? window.__xvwMediaCommand(${JSON.stringify(cmd || {})}) : { ok: false }`,
+        true
+      );
+      if (result?.href) rememberMediaPosition(result.href, result);
+      return result || { ok: false };
+    } catch {
+      return { ok: false, error: "Could not control playback." };
+    }
+  });
+
   ipcMain.handle("window-control", (_event, action) => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (action === "min") mainWindow.minimize();
@@ -588,7 +668,9 @@ app.whenReady().then(() => {
   app.setName(PRODUCT_NAME);
   registerProtocolClient();
   storePath = path.join(app.getPath("userData"), "window-state.json");
+  playbackPath = path.join(app.getPath("userData"), "playback.json");
   state = loadStore(storePath);
+  playback = loadPlaybackStore(playbackPath);
   if (state.lastUrl !== persistedLastUrl(state.lastUrl)) {
     state.lastUrl = "";
   }

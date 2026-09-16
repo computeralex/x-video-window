@@ -340,6 +340,63 @@
     return { ok: true, mode: "theater" };
   };
 
+  function mediaSnapshot() {
+    const video = pickVideo();
+    if (!video) return null;
+    const duration = Number(video.duration);
+    const live = !Number.isFinite(duration) || duration <= 0;
+    return {
+      currentTime: Number(video.currentTime) || 0,
+      duration: live ? 0 : duration,
+      paused: Boolean(video.paused),
+      muted: Boolean(video.muted),
+      volume: Number.isFinite(video.volume) ? video.volume : 1,
+      live,
+      href: location.href,
+    };
+  }
+
+  window.__xvwMediaSnapshot = mediaSnapshot;
+
+  window.__xvwMediaCommand = function mediaCommand(cmd) {
+    const video = pickVideo();
+    if (!video || !cmd) return { ok: false };
+    if (cmd.togglePlay) {
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+    }
+    if (cmd.play) video.play().catch(() => {});
+    if (cmd.pause) video.pause();
+    const duration = Number(video.duration);
+    const canSeek = Number.isFinite(duration) && duration > 0;
+    if (canSeek && typeof cmd.seek === "number") {
+      video.currentTime = Math.min(Math.max(0, cmd.seek), Math.max(0, duration - 0.25));
+    }
+    if (canSeek && typeof cmd.jump === "number") {
+      video.currentTime = Math.min(Math.max(0, video.currentTime + cmd.jump), Math.max(0, duration - 0.25));
+    }
+    if (typeof cmd.muted === "boolean") video.muted = cmd.muted;
+    if (cmd.toggleMute) video.muted = !video.muted;
+    if (typeof cmd.volume === "number") {
+      video.volume = Math.min(1, Math.max(0, cmd.volume));
+      if (video.volume > 0) video.muted = false;
+    }
+    return Object.assign({ ok: true }, mediaSnapshot());
+  };
+
+  window.__xvwRestoreTime = function restoreTime(seconds) {
+    const video = pickVideo();
+    if (!video) return { ok: false, error: "no-video" };
+    const duration = Number(video.duration);
+    if (!Number.isFinite(duration) || duration <= 0) return { ok: false, live: true };
+    const target = Number(seconds);
+    if (!Number.isFinite(target) || target < 3 || target > duration - 2) {
+      return { ok: false, skipped: true, duration };
+    }
+    video.currentTime = target;
+    return { ok: true, currentTime: video.currentTime, duration };
+  };
+
   console.log("[xvw] focus script running", location.pathname);
 
   let timer = 0;

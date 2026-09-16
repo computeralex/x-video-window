@@ -18,6 +18,7 @@ The npm package and git repo stay `x-video-window`. The custom URL scheme stays 
 - **Sign in** opens a dedicated window (not the video webview) using the same local session, so X’s login UI is not covered by player CSS. Paste works in that window (Edit → Paste, right-click Paste, or ⌘/Ctrl+V) including the password field
 - Focus mode hides X’s sidebar, chat rail, left nav, and reply thread so status videos and live broadcasts fill the player. Hover the video for mute/volume/play — you do not turn Focus off to unmute
 - Open a video with **Open video**, paste, ⌘/Ctrl+O (clipboard), drag-drop of a URL or `.webloc`, **Open With** after install, or a `xvw:` link
+- Playback bar on hover (play/pause, seek, mute/volume) and resume on the same VOD the next time you open it
 - Stays on X-related sites (and the hosts needed for login, captcha, and video CDNs)
 
 ## Install and run
@@ -80,6 +81,8 @@ Status links are normalized to `https://x.com/i/status/{id}` — X’s own focus
 **Sign in** opens a separate BrowserWindow on `https://x.com/i/flow/login` with the same `persist:x-session` partition and **no** focus CSS. That avoids X’s onboarding overlay being crushed by the player’s chrome-hiding styles. The window has a standard Edit menu so clipboard paste reaches the login fields. After you land on the home timeline (or click Done), the login window closes and the player reloads.
 
 The player then injects CSS/JS to hide timeline chrome. That is more reliable than scraping CDN `.mp4` URLs, and it still works when you are signed in. Embed widgets (`platform.twitter.com`) are intentionally not the primary path: they are flaky with `x.com` URLs and do not use your logged-in session for restricted posts.
+
+Hover the bottom of the window for play/pause, seek, and mute/volume (Focus stays on). Replay of the same post starts near where you left off; that position is saved under the app support directory (`playback.json`). **Live** broadcasts/spaces usually cannot seek — resume is skipped there.
 
 **Fullscreen** is the Electron `BrowserWindow` (`setFullScreen(true)`), not the webview’s Fullscreen API. On macOS that is the native green-button / Mission Control fullscreen space; on Linux it is `_NET_WM_STATE_FULLSCREEN`. If a window manager ignores that, the app maximizes as an in-window theater. Focus theater (`object-fit: contain`) keeps the video filling the window either way.
 
