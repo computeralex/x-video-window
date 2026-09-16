@@ -27,6 +27,7 @@ const {
   parseIncomingArg,
   firstIncomingFromArgv,
 } = require("./incoming-url");
+const { PRODUCT_NAME } = require("./brand");
 
 const PARTITION = "persist:x-session";
 
@@ -436,7 +437,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     icon: fs.existsSync(iconPath) ? iconPath : undefined,
-    title: "X Video Window",
+    title: PRODUCT_NAME,
     frame: process.platform === "darwin",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
     trafficLightPosition: { x: 14, y: 14 },
@@ -584,7 +585,7 @@ app.on("open-file", (event, filePath) => {
 
 app.whenReady().then(() => {
   if (!gotSingleInstanceLock) return;
-  app.setName("X Video Window");
+  app.setName(PRODUCT_NAME);
   registerProtocolClient();
   storePath = path.join(app.getPath("userData"), "window-state.json");
   state = loadStore(storePath);

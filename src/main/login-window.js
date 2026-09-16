@@ -5,6 +5,7 @@ const { BrowserWindow, Menu, WebContentsView } = require("electron");
 const { isAllowedNavigation } = require("./allowed");
 const { isAuthUrl, isSignedInLanding } = require("./auth");
 const { editMenuTemplate, attachEditContextMenu } = require("./edit-menu");
+const { PRODUCT_NAME } = require("./brand");
 
 const SIGN_IN_URL = "https://x.com/i/flow/login";
 const TOOLBAR_H = 48;
@@ -56,7 +57,7 @@ function createLoginWindow({ partition, userAgent, onComplete }) {
     height: 780,
     minWidth: 420,
     minHeight: 520,
-    title: "Sign in to X",
+    title: `Sign in — ${PRODUCT_NAME}`,
     backgroundColor: "#050505",
     autoHideMenuBar: false,
     show: false,

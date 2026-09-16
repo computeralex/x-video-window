@@ -62,7 +62,7 @@ describe("incoming-url", () => {
     assert.equal(flagged.loadUrl, "https://x.com/i/status/1814440131505598541");
 
     const scheme = firstIncomingFromArgv([
-      "X Video Window",
+      "Unofficial 𝕏 (Twitter) Video Liberator",
       "xvw://https://twitter.com/user/status/1234567890123456789",
     ]);
     assert.ok(scheme);

@@ -1,7 +1,7 @@
 {
   "name": "x-video-window",
   "version": "1.0.0",
-  "description": "Freely resizable desktop window for watching X (Twitter) videos",
+  "description": "Unofficial 𝕏 (Twitter) Video Liberator — freely resizable desktop player that overcomes X’s fixed video layout",
   "main": "src/main/main.js",
   "author": "x-video-window contributors",
   "license": "MIT",
@@ -39,7 +39,8 @@
   },
   "build": {
     "appId": "com.computeralex.xvideowindow",
-    "productName": "X Video Window",
+    "productName": "Unofficial 𝕏 (Twitter) Video Liberator",
+    "executableName": "x-video-window",
     "copyright": "MIT",
     "asar": true,
     "files": [
@@ -53,7 +54,7 @@
     },
     "protocols": [
       {
-        "name": "X Video Window",
+        "name": "Unofficial 𝕏 (Twitter) Video Liberator",
         "schemes": [
           "xvw"
         ]
@@ -70,6 +71,8 @@
       "gatekeeperAssess": false,
       "identity": null,
       "extendInfo": {
+        "CFBundleDisplayName": "Unofficial 𝕏 (Twitter) Video Liberator",
+        "CFBundleName": "𝕏 Video Liberator",
         "CFBundleDocumentTypes": [
           {
             "CFBundleTypeName": "Web URL",
@@ -99,6 +102,7 @@
       "icon": "assets/icon.png",
       "category": "AudioVideo",
       "desktop": {
+        "Name": "Unofficial 𝕏 (Twitter) Video Liberator",
         "MimeType": "x-scheme-handler/xvw;"
       },
       "target": [
