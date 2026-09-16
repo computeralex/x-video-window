@@ -28,7 +28,12 @@ const {
   firstIncomingFromArgv,
 } = require("./incoming-url");
 const { PRODUCT_NAME } = require("./brand");
-const { mediaKeyFromUrl, resumeSeconds, shouldPersistPosition } = require("./playback");
+const {
+  mediaKeyFromUrl,
+  resumeSeconds,
+  shouldPersistPosition,
+  shouldHoldExistingResume,
+} = require("./playback");
 const {
   loadPlaybackStore,
   savePlaybackStore,
@@ -57,6 +62,7 @@ let maximizeFallback = false;
 let playbackPath = null;
 let playback = { version: 1, positions: {} };
 let playbackTimer = null;
+let resumeLock = null;
 const guardedGuests = new WeakSet();
 const insertedCssKeys = new WeakMap();
 
@@ -85,7 +91,7 @@ function persistPlaybackNow() {
   savePlaybackStore(playbackPath, playback);
 }
 
-function rememberMediaPosition(href, snapshot) {
+function rememberMediaPosition(href, snapshot, opts = {}) {
   const key = mediaKeyFromUrl(href || snapshot?.href);
   if (!key) return { ok: false };
   const record = {
@@ -94,11 +100,27 @@ function rememberMediaPosition(href, snapshot) {
     live: Boolean(snapshot?.live),
     updatedAt: Date.now(),
   };
+  if (
+    !opts.force &&
+    resumeLock &&
+    resumeLock.key === key &&
+    shouldHoldExistingResume(resumeLock, record.seconds)
+  ) {
+    return { ok: true, saved: false, key, held: true };
+  }
+  if (
+    resumeLock &&
+    resumeLock.key === key &&
+    !shouldHoldExistingResume(resumeLock, record.seconds)
+  ) {
+    resumeLock.released = true;
+  }
   if (!shouldPersistPosition(record)) {
     return { ok: true, saved: false, key };
   }
   playback = rememberPosition(playback, key, record);
-  persistPlaybackSoon();
+  if (opts.force) persistPlaybackNow();
+  else persistPlaybackSoon();
   return { ok: true, saved: true, key };
 }
 
@@ -107,6 +129,9 @@ function lookupResume(href) {
   if (!key) return { ok: false, seconds: 0 };
   const record = playback.positions[key];
   const seconds = resumeSeconds(record, record?.duration);
+  if (seconds) {
+    resumeLock = { key, seconds, until: Date.now() + 8000, released: false };
+  }
   return { ok: Boolean(seconds), key, seconds, live: Boolean(record?.live) };
 }
 
@@ -621,7 +646,7 @@ function registerIpc() {
         `window.__xvwMediaCommand ? window.__xvwMediaCommand(${JSON.stringify(cmd || {})}) : { ok: false }`,
         true
       );
-      if (result?.href) rememberMediaPosition(result.href, result);
+      if (result?.href) rememberMediaPosition(result.href, result, { force: true });
       return result || { ok: false };
     } catch {
       return { ok: false, error: "Could not control playback." };

@@ -388,13 +388,50 @@
     const video = pickVideo();
     if (!video) return { ok: false, error: "no-video" };
     const duration = Number(video.duration);
-    if (!Number.isFinite(duration) || duration <= 0) return { ok: false, live: true };
+    if (!Number.isFinite(duration) || duration <= 0) {
+      if (video.readyState < 1) return { ok: false, error: "not-ready" };
+      return { ok: false, live: true };
+    }
     const target = Number(seconds);
     if (!Number.isFinite(target) || target < 3 || target > duration - 2) {
       return { ok: false, skipped: true, duration };
     }
-    video.currentTime = target;
-    return { ok: true, currentTime: video.currentTime, duration };
+
+    // X often rebuilds <video> and snaps currentTime back to 0 after the
+    // first seek. Hold the target briefly and re-apply until it sticks.
+    window.__xvwResumeTarget = target;
+    window.__xvwResumeUntil = Date.now() + 4500;
+
+    function applyResume() {
+      if (!window.__xvwResumeTarget || Date.now() > (window.__xvwResumeUntil || 0)) return false;
+      const v = pickVideo();
+      if (!v) return false;
+      const d = Number(v.duration);
+      if (!Number.isFinite(d) || d <= 0) return false;
+      const now = Number(v.currentTime) || 0;
+      if (Math.abs(now - window.__xvwResumeTarget) > 0.85) {
+        try {
+          v.currentTime = window.__xvwResumeTarget;
+        } catch {
+          return false;
+        }
+      }
+      return Math.abs((Number(v.currentTime) || 0) - window.__xvwResumeTarget) <= 1.75;
+    }
+
+    if (!window.__xvwResumeHooked) {
+      window.__xvwResumeHooked = true;
+      const onMedia = () => applyResume();
+      document.addEventListener("loadedmetadata", onMedia, true);
+      document.addEventListener("loadeddata", onMedia, true);
+      document.addEventListener("canplay", onMedia, true);
+      document.addEventListener("playing", onMedia, true);
+      document.addEventListener("seeked", onMedia, true);
+      window.setInterval(onMedia, 300);
+    }
+
+    const ok = applyResume();
+    return { ok, currentTime: video.currentTime, duration, target };
   };
 
   console.log("[xvw] focus script running", location.pathname);

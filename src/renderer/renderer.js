@@ -50,6 +50,7 @@ const state = {
   },
   seeking: false,
   restoredKey: "",
+  restoreInFlight: "",
 };
 
 const CHROME_IDLE_MS = 1600;
@@ -232,7 +233,10 @@ async function applyMediaSnapshot(snap) {
 
 async function maybeRestore(href, snap) {
   if (!href || state.restoredKey === href) return;
-  if (snap?.live) return;
+  if (snap?.live) {
+    state.restoredKey = href;
+    return;
+  }
   let resume;
   try {
     resume = await window.xvw.getPlayback(href);
@@ -243,22 +247,36 @@ async function maybeRestore(href, snap) {
     state.restoredKey = href;
     return;
   }
-  if (snap && Number(snap.currentTime) >= resume.seconds - 1) {
+  const current = Number(snap?.currentTime) || 0;
+  if (Math.abs(current - resume.seconds) <= 1.5) {
     state.restoredKey = href;
     return;
   }
-  state.restoredKey = href;
-  const attempts = [150, 400, 900, 1600, 2400];
-  for (const wait of attempts) {
-    await new Promise((r) => setTimeout(r, wait));
-    try {
-      const result = await els.player.executeJavaScript(
-        `window.__xvwRestoreTime ? window.__xvwRestoreTime(${JSON.stringify(resume.seconds)}) : { ok: false }`
-      );
-      if (result?.ok || result?.live) break;
-    } catch {
-      // guest may still be loading
+  if (state.restoreInFlight === href) return;
+  state.restoreInFlight = href;
+  try {
+    const attempts = [80, 200, 400, 700, 1100, 1600, 2200, 3000];
+    for (const wait of attempts) {
+      await new Promise((r) => setTimeout(r, wait));
+      try {
+        const result = await els.player.executeJavaScript(
+          `window.__xvwRestoreTime ? window.__xvwRestoreTime(${JSON.stringify(resume.seconds)}) : { ok: false }`
+        );
+        if (result?.live) {
+          state.restoredKey = href;
+          return;
+        }
+        const at = Number(result?.currentTime) || 0;
+        if (result?.ok && Math.abs(at - resume.seconds) <= 1.75) {
+          state.restoredKey = href;
+          return;
+        }
+      } catch {
+        // guest may still be loading
+      }
     }
+  } finally {
+    if (state.restoreInFlight === href) state.restoreInFlight = "";
   }
 }
 

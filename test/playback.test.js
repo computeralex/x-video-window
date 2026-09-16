@@ -10,6 +10,8 @@ const {
   isLiveSnapshot,
   shouldPersistPosition,
   resumeSeconds,
+  alreadyAtResume,
+  shouldHoldExistingResume,
   upsertPosition,
 } = require("../src/main/playback");
 const {
@@ -55,6 +57,27 @@ describe("resume rules", () => {
     assert.equal(resumeSeconds({ seconds: 42, duration: 180 }, 180), 42);
     assert.equal(resumeSeconds({ seconds: 1, duration: 180 }, 180), 0);
     assert.equal(resumeSeconds({ seconds: 40, duration: 180, live: true }, 180), 0);
+  });
+
+  it("compares currentTime to the saved resume with parentheses, not || precedence", () => {
+    assert.equal(alreadyAtResume(8, 8), true);
+    assert.equal(alreadyAtResume(8.4, 8), true);
+    assert.equal(alreadyAtResume(1.2, 8), false);
+    assert.equal(alreadyAtResume(0, 8), false);
+    assert.equal(alreadyAtResume(19, 8), false);
+    // The broken form `Number(t) || 0 - saved` treats 1.2 as already-there.
+    const broken = Math.abs(Number(1.2) || 0 - 8) <= 1.5;
+    assert.equal(broken, true);
+    assert.equal(alreadyAtResume(1.2, 8), false);
+  });
+
+  it("holds the disk position against autoplay-from-zero until restore sticks", () => {
+    const lock = { key: "status:1", seconds: 8, until: 10_000, released: false };
+    assert.equal(shouldHoldExistingResume(lock, 0.4, 1000), true);
+    assert.equal(shouldHoldExistingResume(lock, 14, 1000), true);
+    assert.equal(shouldHoldExistingResume(lock, 8.1, 1000), false);
+    assert.equal(shouldHoldExistingResume({ ...lock, released: true }, 14, 1000), false);
+    assert.equal(shouldHoldExistingResume(lock, 14, 20_000), false);
   });
 
   it("round-trips a VOD position on disk", () => {

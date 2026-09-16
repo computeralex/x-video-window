@@ -62,6 +62,25 @@ function resumeSeconds(record, duration) {
   return Math.min(t, Math.max(0, d - END_GUARD_SECONDS));
 }
 
+const RESUME_NEAR_SECONDS = 1.5;
+const RESUME_HOLD_NEAR_SECONDS = 2.5;
+
+function alreadyAtResume(currentTime, savedSeconds, tolerance = RESUME_NEAR_SECONDS) {
+  const current = Number(currentTime) || 0;
+  const saved = Number(savedSeconds) || 0;
+  return Math.abs(current - saved) <= tolerance;
+}
+
+/**
+ * After a lookup, ignore autoplay-from-zero snapshots so they cannot
+ * overwrite the disk position before restore has a chance to stick.
+ */
+function shouldHoldExistingResume(lock, incomingSeconds, now = Date.now()) {
+  if (!lock || lock.released || !lock.key) return false;
+  if (now >= (Number(lock.until) || 0)) return false;
+  return !alreadyAtResume(incomingSeconds, lock.seconds, RESUME_HOLD_NEAR_SECONDS);
+}
+
 function upsertPosition(positions, key, record) {
   const next = { ...(positions || {}) };
   if (!key) return next;
@@ -88,10 +107,14 @@ module.exports = {
   MIN_RESUME_SECONDS,
   END_GUARD_SECONDS,
   MAX_POSITIONS,
+  RESUME_NEAR_SECONDS,
+  RESUME_HOLD_NEAR_SECONDS,
   mediaKeyFromUrl,
   isLiveSnapshot,
   shouldPersistPosition,
   resumeSeconds,
+  alreadyAtResume,
+  shouldHoldExistingResume,
   upsertPosition,
   prunePositions,
 };
