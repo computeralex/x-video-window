@@ -231,12 +231,8 @@ async function applyMediaSnapshot(snap) {
 }
 
 async function maybeRestore(href, snap) {
-  if (!href || snap.live || state.restoredKey === href) return;
-  if (!Number.isFinite(snap.duration) || snap.duration <= 0) return;
-  if (snap.currentTime >= 3) {
-    state.restoredKey = href;
-    return;
-  }
+  if (!href || state.restoredKey === href) return;
+  if (snap?.live) return;
   let resume;
   try {
     resume = await window.xvw.getPlayback(href);
@@ -247,8 +243,12 @@ async function maybeRestore(href, snap) {
     state.restoredKey = href;
     return;
   }
+  if (snap && Number(snap.currentTime) >= resume.seconds - 1) {
+    state.restoredKey = href;
+    return;
+  }
   state.restoredKey = href;
-  const attempts = [200, 700, 1400, 2200];
+  const attempts = [150, 400, 900, 1600, 2400];
   for (const wait of attempts) {
     await new Promise((r) => setTimeout(r, wait));
     try {
@@ -443,6 +443,9 @@ async function injectFocus() {
     await els.player.executeJavaScript(
       `${assets.js}\nwindow.__xvwSetCompact(${compact ? "true" : "false"});`
     );
+    const href =
+      typeof els.player.getURL === "function" ? els.player.getURL() : els.player.getAttribute("src");
+    if (href && href !== "about:blank") maybeRestore(href, { currentTime: 0, duration: 1, live: false });
   } catch (err) {
     console.error("xvw: focus inject failed", err);
   }
