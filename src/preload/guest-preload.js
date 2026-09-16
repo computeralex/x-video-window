@@ -56,16 +56,41 @@ function ensureEarlyCinema() {
       height: 100% !important;
       max-height: 100% !important;
       background: #000 !important;
+      transform: none !important;
+      filter: none !important;
+      contain: none !important;
+      perspective: none !important;
+    }
+    html.xvw-theater aside,
+    html.xvw-theater nav,
+    html.xvw-theater [class*="layout-width-right"],
+    html.xvw-theater [class*="layout-width-rail"],
+    html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
+    html.xvw-theater [data-testid="tweetText"],
+    html.xvw-theater [aria-label="Follow"],
+    html.xvw-theater [aria-label="Following"],
+    html.xvw-theater [aria-label="Reply"],
+    html.xvw-theater [aria-label="Repost"],
+    html.xvw-theater [aria-label="Like"],
+    html.xvw-theater [aria-label="Bookmark"],
+    html.xvw-theater [aria-label="Share"],
+    html.xvw-theater [aria-label="View count"],
+    html.xvw-theater [aria-label="See all the replies"] {
+      display: none !important;
     }
     html.xvw-theater [class*="aspect-video"],
     html.xvw-theater [data-testid="videoPlayer"],
     html.xvw-theater [data-testid="videoComponent"] {
       position: fixed !important;
       inset: 0 !important;
+      left: 0 !important;
+      top: 0 !important;
       width: 100vw !important;
       height: 100vh !important;
       max-width: none !important;
       max-height: none !important;
+      transform: none !important;
+      contain: none !important;
       z-index: 2147483000 !important;
       background: #000 !important;
     }
@@ -74,10 +99,6 @@ function ensureEarlyCinema() {
       height: 100% !important;
       object-fit: contain !important;
       background: #000 !important;
-    }
-    html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
-    html.xvw-theater [data-testid="tweetText"] {
-      display: none !important;
     }
   `;
 }

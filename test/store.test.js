@@ -31,6 +31,20 @@ describe("store", () => {
     assert.equal(loaded.bounds.width, 960);
   });
 
+  it("defaults Focus/compact on when the key is omitted, and persists an explicit off", () => {
+    const omitted = path.join(os.tmpdir(), `xvw-state-omit-${Date.now()}.json`);
+    fs.writeFileSync(omitted, JSON.stringify({ bounds: { width: 800, height: 600 } }), "utf8");
+    assert.equal(loadStore(omitted).compact, true);
+    fs.unlinkSync(omitted);
+
+    const off = path.join(os.tmpdir(), `xvw-state-off-${Date.now()}.json`);
+    saveStore(off, { bounds: { width: 800, height: 600 }, compact: false, lastUrl: "" });
+    assert.equal(loadStore(off).compact, false);
+    const saved = JSON.parse(fs.readFileSync(off, "utf8"));
+    assert.equal(saved.compact, false);
+    fs.unlinkSync(off);
+  });
+
   it("drops bounds that sit on no display", () => {
     const displays = [{ workArea: { x: 0, y: 0, width: 1280, height: 800 } }];
     const off = sanitizeBounds({ x: -8000, y: -8000, width: 700, height: 500 }, displays);

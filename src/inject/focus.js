@@ -6,7 +6,7 @@
   }
   window.__xvwFocusInstalled = true;
   if (typeof window.__xvwCompact !== "boolean") {
-    window.__xvwCompact = true;
+    window.__xvwCompact = document.documentElement.dataset.xvwFocus !== "off";
   }
 
   const STYLE_ID = "xvw-runtime-style";
@@ -60,10 +60,34 @@
         max-height: 100% !important;
         overflow: hidden !important;
         background: #000 !important;
+        transform: none !important;
+        filter: none !important;
+        perspective: none !important;
+        contain: none !important;
+        will-change: auto !important;
+        backdrop-filter: none !important;
+      }
+      html.xvw-theater aside,
+      html.xvw-theater nav,
+      html.xvw-theater [class*="layout-width-right"],
+      html.xvw-theater [class*="layout-width-rail"],
+      html.xvw-theater [aria-label="Follow"],
+      html.xvw-theater [aria-label="Following"],
+      html.xvw-theater [aria-label="Reply"],
+      html.xvw-theater [aria-label="Repost"],
+      html.xvw-theater [aria-label="Like"],
+      html.xvw-theater [aria-label="Bookmark"],
+      html.xvw-theater [aria-label="Share"],
+      html.xvw-theater [aria-label="View count"],
+      html.xvw-theater [aria-label="See all the replies"],
+      html.xvw-theater [aria-label="Back"] {
+        display: none !important;
       }
       html.xvw-theater .xvw-player-root {
         position: fixed !important;
         inset: 0 !important;
+        left: 0 !important;
+        top: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
         min-width: 100vw !important;
@@ -73,6 +97,9 @@
         aspect-ratio: auto !important;
         margin: 0 !important;
         padding: 0 !important;
+        transform: none !important;
+        filter: none !important;
+        contain: none !important;
         z-index: 2147483000 !important;
         background: #000 !important;
         display: flex !important;
@@ -86,6 +113,8 @@
         min-height: 0 !important;
         flex: 1 1 auto !important;
         transform: none !important;
+        filter: none !important;
+        contain: none !important;
       }
       html.xvw-theater .xvw-player-root video,
       html.xvw-theater video.xvw-video {
@@ -250,6 +279,44 @@
     document.querySelectorAll(".xvw-hide-meta").forEach((n) => n.classList.remove("xvw-hide-meta"));
   }
 
+  function isTweetChrome(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.tagName === "ASIDE" || el.tagName === "NAV") return true;
+    const testid = el.getAttribute("data-testid") || "";
+    if (
+      /^(reply|retweet|like|bookmark|Share|tweetButtonInline|inlinePrompt|sidebarColumn|BottomBar)$/i.test(
+        testid
+      )
+    ) {
+      return true;
+    }
+    const label = `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`;
+    if (
+      /^(Reply|Repost|Like|Bookmark|Share|Follow|Following|View count|Back|See all the replies)\b/i.test(
+        label
+      ) ||
+      /View post analytics|Post your reply|Continue to X|Scan to get the app/i.test(label)
+    ) {
+      return true;
+    }
+    const text = (el.innerText || "").replace(/\s+/g, " ").trim().slice(0, 180);
+    return /See all the replies|Continue to X|Scan to get the app|Log in or sign up|Post your reply|Who to follow/i.test(
+      text
+    );
+  }
+
+  function isKeepOverlay(child) {
+    if (!child || child.nodeType !== 1) return false;
+    if (child.querySelector && child.querySelector("video")) return true;
+    if (isPlayerControl(child)) return true;
+    if (isTweetChrome(child)) return false;
+    const style = window.getComputedStyle(child);
+    if (style.position !== "absolute" && style.position !== "fixed") return false;
+    const text = (child.innerText || "").replace(/\s+/g, " ").trim();
+    if (!text) return true;
+    return /^\d+:\d{2}(?:\s*\/\s*\d+:\d{2})?$/.test(text);
+  }
+
   function hideNonVideoBranches(video) {
     const keep = new Set();
     let node = video;
@@ -264,15 +331,20 @@
     keep.forEach((el) => {
       for (const child of Array.from(el.children || [])) {
         if (keep.has(child)) continue;
-        if (child.querySelector && child.querySelector("video")) {
+        if (isKeepOverlay(child)) {
           child.classList.remove("xvw-hide-chrome");
           continue;
         }
-        if (isPlayerControl(child)) continue;
-        const style = window.getComputedStyle(child);
-        if (style.position === "absolute" || style.position === "fixed") continue;
         child.classList.add("xvw-hide-chrome");
       }
+    });
+  }
+
+  function hidePostChrome() {
+    document.querySelectorAll("aside, nav").forEach((el) => {
+      if (el.querySelector && el.querySelector("video")) return;
+      if (isPlayerControl(el)) return;
+      el.classList.add("xvw-hide-chrome");
     });
   }
 
@@ -326,6 +398,7 @@
       el = el.parentElement;
     }
     hideNonVideoBranches(video);
+    hidePostChrome();
     hideDecorativeMeta(root);
     return true;
   }
