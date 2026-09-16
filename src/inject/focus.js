@@ -53,14 +53,6 @@
 
     const theater = compact
       ? `
-      html.xvw-theater,
-      html.xvw-theater body,
-      html.xvw-theater #react-root {
-        height: 100% !important;
-        max-height: 100% !important;
-        overflow: hidden !important;
-        background: #000 !important;
-      }
       html.xvw-theater aside:not(:has(video)),
       html.xvw-theater nav:not(:has(video)),
       html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
@@ -73,42 +65,20 @@
       html.xvw-theater button[aria-label="Bookmark"],
       html.xvw-theater button[aria-label="Share"],
       html.xvw-theater [aria-label="View count"],
-      html.xvw-theater [aria-label="See all the replies"] {
+      html.xvw-theater [aria-label="See all the replies"],
+      html.xvw-theater .xvw-hide-chrome {
         display: none !important;
+      }
+      html.xvw-theater {
+        --layout-width-two-column: 100vw;
+        --layout-width-primary: 100vw;
       }
       html.xvw-theater [class*="layout-width-two-column"],
       html.xvw-theater [class*="layout-width-primary"],
+      html.xvw-theater [class*="max-w-[600px]"],
       html.xvw-theater main[role="main"] {
         max-width: none !important;
         width: 100% !important;
-      }
-      html.xvw-theater .xvw-player-root {
-        position: fixed !important;
-        inset: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        min-width: 100vw !important;
-        min-height: 100vh !important;
-        max-width: none !important;
-        max-height: none !important;
-        aspect-ratio: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        z-index: 2147483000 !important;
-        background: #000 !important;
-      }
-      html.xvw-theater .xvw-fill-box {
-        width: 100% !important;
-        height: 100% !important;
-        max-width: none !important;
-        max-height: none !important;
-        min-width: 0 !important;
-        min-height: 0 !important;
-        flex: 1 1 auto !important;
-      }
-      html.xvw-theater .xvw-hide-chrome,
-      html.xvw-theater .xvw-hide-meta {
-        display: none !important;
       }
     `
       : "";
@@ -211,93 +181,14 @@
     );
   }
 
-  function findPlayerRoot(video) {
-    const parent = video.parentElement;
-    if (parent && isPlayerControl(parent)) return parent;
-    const known = video.closest(
-      '[data-testid="videoPlayer"], [data-testid="videoComponent"], [data-testid="previewInterstitial"], [class*="aspect-video"]'
-    );
-    if (known) return known;
-    let el = parent;
-    let candidate = el || video;
-    for (let i = 0; i < 10 && el && el !== document.body; i++) {
-      const testid = el.getAttribute("data-testid") || "";
-      if (/video/i.test(testid)) return el;
-      candidate = el;
-      if (el.getAttribute("data-testid") === "primaryColumn") break;
-      if (el.getAttribute("role") === "main") break;
-      el = el.parentElement;
-    }
-    return candidate;
-  }
-
   function clearTheaterMarks() {
     document.documentElement.classList.remove("xvw-theater");
+    document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
     document.querySelectorAll(".xvw-player-root").forEach((n) => n.classList.remove("xvw-player-root"));
     document.querySelectorAll(".xvw-fill-box").forEach((n) => n.classList.remove("xvw-fill-box"));
-    document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
     document.querySelectorAll(".xvw-neutralize").forEach((n) => n.classList.remove("xvw-neutralize"));
     document.querySelectorAll("video.xvw-video").forEach((n) => n.classList.remove("xvw-video"));
     document.querySelectorAll(".xvw-hide-meta").forEach((n) => n.classList.remove("xvw-hide-meta"));
-  }
-
-  function isTweetChrome(el) {
-    if (!el || el.nodeType !== 1) return false;
-    if (el.tagName === "ASIDE" || el.tagName === "NAV") return true;
-    const testid = el.getAttribute("data-testid") || "";
-    if (
-      /^(reply|retweet|like|bookmark|Share|tweetButtonInline|inlinePrompt|sidebarColumn|BottomBar)$/i.test(
-        testid
-      )
-    ) {
-      return true;
-    }
-    const label = `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`;
-    if (
-      /^(Reply|Repost|Like|Bookmark|Share|Follow|Following|View count|Back|See all the replies)\b/i.test(
-        label
-      ) ||
-      /View post analytics|Post your reply|Continue to X|Scan to get the app/i.test(label)
-    ) {
-      return true;
-    }
-    const text = (el.innerText || "").replace(/\s+/g, " ").trim().slice(0, 180);
-    return /See all the replies|Continue to X|Scan to get the app|Log in or sign up|Post your reply|Who to follow/i.test(
-      text
-    );
-  }
-
-  function isKeepOverlay(child) {
-    if (!child || child.nodeType !== 1) return false;
-    if (child.querySelector && child.querySelector("video")) return true;
-    if (isPlayerControl(child)) return true;
-    if (isTweetChrome(child)) return false;
-    const style = window.getComputedStyle(child);
-    if (style.position !== "absolute" && style.position !== "fixed") return false;
-    const text = (child.innerText || "").replace(/\s+/g, " ").trim();
-    if (!text) return true;
-    return /^\d+:\d{2}(?:\s*\/\s*\d+:\d{2})?$/.test(text);
-  }
-
-  function hideNonVideoBranches(video) {
-    const root = findPlayerRoot(video) || video;
-    const keep = new Set();
-    let node = root;
-    while (node) {
-      keep.add(node);
-      // Never hide the player or its ancestor chain. Do not walk inside
-      // the player — canvases and hover overlays live there.
-      node.classList.remove("xvw-hide-chrome");
-      node.classList.remove("xvw-hide-meta");
-      node = node.parentElement;
-    }
-    keep.forEach((el) => {
-      for (const child of Array.from(el.children || [])) {
-        if (keep.has(child)) continue;
-        if (child.querySelector && child.querySelector("video")) continue;
-        child.classList.add("xvw-hide-chrome");
-      }
-    });
   }
 
   function hidePostChrome() {
@@ -306,34 +197,12 @@
       if (isPlayerControl(el)) return;
       el.classList.add("xvw-hide-chrome");
     });
-  }
-
-  function hideDecorativeMeta(root) {
-    if (!root) return;
-    for (const child of Array.from(root.children || [])) {
-      if (child.tagName === "VIDEO" || isPlayerControl(child)) continue;
-      for (const section of Array.from(child.children || [])) {
-        if (isPlayerControl(section)) continue;
-        if (section.querySelector("button[aria-label], [aria-label='Seek slider'], [role='slider']")) {
-          continue;
-        }
-        section.classList.add("xvw-hide-meta");
-      }
-    }
-    root.querySelectorAll("a, span, div, p, h1, h2, h3").forEach((el) => {
+    document.querySelectorAll("button").forEach((el) => {
+      if (el.closest("video") || (el.querySelector && el.querySelector("video"))) return;
       if (isPlayerControl(el)) return;
-      if (el.closest("button") || el.closest("[role='slider']") || el.closest("[aria-label='Seek slider']")) {
-        return;
-      }
-      const text = (el.textContent || "").replace(/\s+/g, " ").trim();
-      if (!text) return;
-      if (
-        /^LIVE$/i.test(text) ||
-        /^\d[\d.,]*\s*[KMB]?\s*views$/i.test(text) ||
-        /^@\w+$/.test(text) ||
-        /scan to get the app/i.test(text)
-      ) {
-        el.classList.add("xvw-hide-meta");
+      const label = `${el.getAttribute("aria-label") || ""} ${el.innerText || ""}`;
+      if (/Scan to get the app|Continue to X|See all the replies|Post your reply/i.test(label)) {
+        el.classList.add("xvw-hide-chrome");
       }
     });
   }
@@ -343,35 +212,10 @@
       clearTheaterMarks();
       return false;
     }
-    const video = pickVideo();
-    if (!video) return false;
-    const root = findPlayerRoot(video);
-    if (!root) return false;
-
+    // Hide tweet chrome only. Do not pin, restyle, or restack <video>
+    // or its player root — that blanks the Mac media layer.
     document.documentElement.classList.add("xvw-theater");
-    root.classList.add("xvw-player-root");
-    // Grow layout around the player. Never restyle <video> itself —
-    // width/object-fit/transform on the media element blanks Mac frames.
-    let el = root.parentElement;
-    while (el && el !== document.documentElement) {
-      el.classList.add("xvw-fill-box");
-      el = el.parentElement;
-    }
-    hideNonVideoBranches(video);
     hidePostChrome();
-
-    const widthBefore = video.videoWidth;
-    const unpinIfBlanked = () => {
-      if (window.__xvwCompact === false) return;
-      const v = pickVideo();
-      if (!v) return;
-      if (widthBefore > 0 && v.videoWidth === 0) {
-        document.querySelectorAll(".xvw-player-root").forEach((n) => n.classList.remove("xvw-player-root"));
-      }
-    };
-    window.setTimeout(unpinIfBlanked, 50);
-    window.setTimeout(unpinIfBlanked, 250);
-    window.setTimeout(unpinIfBlanked, 800);
     return true;
   }
 
@@ -419,6 +263,41 @@
   }
 
   window.__xvwMediaSnapshot = mediaSnapshot;
+
+  window.__xvwProbeMedia = function probeMedia() {
+    const video = pickVideo();
+    const r = video ? video.getBoundingClientRect() : null;
+    const tweet = document.querySelector('[class*="font-chirp"][class*="whitespace-pre-wrap"]');
+    const aside = document.querySelector("aside");
+    const seek = document.querySelector("[aria-label='Seek slider'], [aria-label*='Seek']");
+    const mute = document.querySelector("[aria-label='Mute'], [aria-label='Unmute']");
+    return {
+      href: location.href,
+      theater: document.documentElement.classList.contains("xvw-theater"),
+      compact: window.__xvwCompact !== false,
+      inner: { w: innerWidth, h: innerHeight },
+      tweetHidden: !tweet || getComputedStyle(tweet).display === "none" || tweet.getBoundingClientRect().height < 2,
+      asideHidden: !aside || getComputedStyle(aside).display === "none" || aside.getBoundingClientRect().height < 2,
+      xHover: { seek: Boolean(seek), mute: Boolean(mute) },
+      video: video && {
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState,
+        currentTime: Number(video.currentTime) || 0,
+        duration: Number.isFinite(video.duration) ? video.duration : 0,
+        paused: Boolean(video.paused),
+        muted: Boolean(video.muted),
+        pos: getComputedStyle(video).position,
+        transform: getComputedStyle(video).transform,
+        opacity: getComputedStyle(video).opacity,
+        visibility: getComputedStyle(video).visibility,
+      },
+    };
+  };
 
   window.__xvwMediaCommand = function mediaCommand(cmd) {
     const video = pickVideo();

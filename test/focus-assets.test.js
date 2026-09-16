@@ -18,18 +18,24 @@ describe("Focus theater assets", () => {
       assert.match(source, /aria-label="Like"/);
     }
     assert.match(js, /hidePostChrome/);
-    assert.match(css, /\.xvw-player-root/);
+    assert.match(css, /--layout-width-two-column:\s*100vw/);
   });
 
-  it("does not pin every aspect-video or blank the media layer with transform/filter", () => {
-    assert.doesNotMatch(css, /html\.xvw-theater \[class\*="aspect-video"\]/);
-    assert.doesNotMatch(preload, /\[class\*="aspect-video"\]/);
-    assert.doesNotMatch(css, /html\.xvw-theater video \{/);
-    assert.doesNotMatch(css, /\.xvw-player-root video/);
-    assert.doesNotMatch(preload, /\.xvw-player-root video/);
+  it("does not pin the player or restyle <video> (Mac media-layer blackout)", () => {
+    for (const source of [css, js, preload]) {
+      assert.doesNotMatch(source, /\.xvw-player-root\s*\{[^}]*position:\s*fixed/s);
+      assert.doesNotMatch(source, /html\.xvw-theater \[class\*="aspect-video"\]/);
+      assert.doesNotMatch(source, /html\.xvw-theater video \{/);
+      assert.doesNotMatch(source, /\.xvw-player-root video/);
+    }
     assert.doesNotMatch(js, /classList\.add\("xvw-video"\)/);
     assert.doesNotMatch(js, /classList\.add\("xvw-neutralize"\)/);
-    assert.match(js, /unpinIfBlanked/);
+    assert.doesNotMatch(js, /classList\.add\("xvw-player-root"\)/);
+    assert.doesNotMatch(js, /classList\.add\("xvw-fill-box"\)/);
+    assert.doesNotMatch(js, /unpinIfBlanked/);
+    assert.doesNotMatch(js, /hideNonVideoBranches/);
+    assert.doesNotMatch(css, /z-index:\s*2147483000/);
+    assert.doesNotMatch(preload, /z-index:\s*2147483000/);
   });
 
   it("defaults compact/Focus on in the injected script unless the user turned it off", () => {

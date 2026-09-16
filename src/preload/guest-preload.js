@@ -51,12 +51,6 @@ function ensureEarlyCinema() {
     (document.head || document.documentElement).appendChild(style);
   }
   style.textContent = `
-    html.xvw-theater, html.xvw-theater body, html.xvw-theater #react-root {
-      overflow: hidden !important;
-      height: 100% !important;
-      max-height: 100% !important;
-      background: #000 !important;
-    }
     html.xvw-theater aside:not(:has(video)),
     html.xvw-theater nav:not(:has(video)),
     html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
@@ -74,15 +68,16 @@ function ensureEarlyCinema() {
     html.xvw-theater [aria-label="See all the replies"] {
       display: none !important;
     }
-    html.xvw-theater .xvw-player-root {
-      position: fixed !important;
-      inset: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
+    html.xvw-theater {
+      --layout-width-two-column: 100vw;
+      --layout-width-primary: 100vw;
+    }
+    html.xvw-theater [class*="layout-width-two-column"],
+    html.xvw-theater [class*="layout-width-primary"],
+    html.xvw-theater [class*="max-w-[600px]"],
+    html.xvw-theater main[role="main"] {
       max-width: none !important;
-      max-height: none !important;
-      z-index: 2147483000 !important;
-      background: #000 !important;
+      width: 100% !important;
     }
   `;
 }
