@@ -2,7 +2,7 @@
 
 A desktop app that **overcomes X’s non-resizable, limited video player**. Paste an `x.com` / `twitter.com` post or broadcast into a freely resizable window, optionally keep it always-on-top, and sign in with your own X account when a video is private.
 
-**[Quick start → ONBOARDING.md](ONBOARDING.md)** — install, paste a link, resize, done.
+**[Quick start → ONBOARDING.md](ONBOARDING.md)** — open the app, log in, paste your video.
 
 X’s browser UI keeps the player in a fixed layout. This app is a dedicated window: drag any edge, watch the video, ignore the timeline.
 
@@ -22,7 +22,7 @@ The npm package and git repo stay `x-video-window`. The custom URL scheme stays 
 
 ## Install and run
 
-New here? Follow the **[onboarding guide](ONBOARDING.md)** (about one screen). You need [Node.js 18+](https://nodejs.org/) (20 LTS is a good choice) for `npm start`. Packaged Mac builds are a `.dmg`.
+New here? **[Open the app, log in, paste your video](ONBOARDING.md).** You need [Node.js 18+](https://nodejs.org/) (20 LTS is a good choice) for `npm start`. Packaged Mac builds are a `.dmg`.
 
 ```bash
 git clone https://github.com/computeralex/x-video-window.git
@@ -31,10 +31,7 @@ npm install
 npm start
 ```
 
-1. Copy a public X video post URL.
-2. Click **Open video** and paste it, or press **⌘/Ctrl+O** to open the clipboard.
-3. Resize the window while the video plays. The address bar is not kept on screen.
-4. For private or restricted videos, click **Sign in** and complete login in the dedicated window (same session as the player). You can paste into the email and password fields from the Edit menu or ⌘/Ctrl+V.
+That’s the whole loop: open the app, **Sign in** if you want your session, then **Open video** or **⌘/Ctrl+O** and paste a link. More detail is in [ONBOARDING.md](ONBOARDING.md).
 
 macOS users: `npm start` is the fastest way to try it. A packaged `.app` / `.dmg` is described below.
 
