@@ -48,6 +48,7 @@
       "assets/icon.png",
       "package.json"
     ],
+    "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
     "directories": {
       "buildResources": "assets",
       "output": "dist"
@@ -101,9 +102,14 @@
     "linux": {
       "icon": "assets/icon.png",
       "category": "AudioVideo",
+      "mimeTypes": [
+        "x-scheme-handler/xvw"
+      ],
       "desktop": {
-        "Name": "Unofficial 𝕏 (Twitter) Video Liberator",
-        "MimeType": "x-scheme-handler/xvw;"
+        "entry": {
+          "Name": "Unofficial 𝕏 (Twitter) Video Liberator",
+          "MimeType": "x-scheme-handler/xvw;"
+        }
       },
       "target": [
         "AppImage",

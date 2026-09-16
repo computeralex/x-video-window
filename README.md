@@ -23,7 +23,35 @@ The npm package and git repo stay `x-video-window`. The custom URL scheme stays 
 
 ## Install and run
 
-New here? **[Open the app, log in, paste your video](ONBOARDING.md).** You need [Node.js 18+](https://nodejs.org/) (20 LTS is a good choice) for `npm start`. Packaged Mac builds are a `.dmg`.
+New here? **[Open the app, log in, paste your video](ONBOARDING.md).**
+
+### Packaged downloads
+
+GitHub Actions builds installers on each `v*` tag (and on a manual Release workflow run). Grab them from [Releases](https://github.com/computeralex/x-video-window/releases):
+
+| Platform | What you get |
+| --- | --- |
+| **macOS** | `.dmg` and `.zip`, each containing the `.app` |
+| **Windows** | NSIS installer (`.exe`) and `.zip` |
+| **Linux** | AppImage and `.zip` |
+
+**macOS:** builds are **unsigned**. After you open the `.dmg`, drag the app to Applications, then right-click → **Open** the first time so Gatekeeper lets it run. Apple silicon and Intel each get the arch you build on; on Apple silicon you can pass `--universal` if you need both.
+
+**Windows:** run the NSIS installer, or unzip and launch `x-video-window.exe`.
+
+**Linux (AppImage):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/computeralex/x-video-window/main/install.sh | bash
+```
+
+That script downloads the latest Linux AppImage from Releases, installs it to `~/.local/bin/x-video-window`, and writes a `.desktop` launcher (Name **Unofficial 𝕏 (Twitter) Video Liberator**, `x-scheme-handler/xvw`). **Reading the script before piping it to bash is wiser** — `curl -fsSL …/install.sh -o install.sh`, open it, then `bash install.sh`. It exits with a clear error if no Release AppImage exists yet.
+
+There is no Homebrew formula.
+
+### From source
+
+You need [Node.js 18+](https://nodejs.org/) (20 LTS is a good choice).
 
 ```bash
 git clone https://github.com/computeralex/x-video-window.git
@@ -34,11 +62,9 @@ npm start
 
 That’s the whole loop: open the app, **Sign in** if you want your session, then **Open video** or **⌘/Ctrl+O** and paste a link. More detail is in [ONBOARDING.md](ONBOARDING.md).
 
-macOS users: `npm start` is the fastest way to try it. A packaged `.app` / `.dmg` is described below.
-
 ## Build a downloadable app
 
-Package installers from the same repo. Run these on the OS you want to ship (macOS builds of `.dmg` / `.app` need a Mac).
+Package installers from the same repo. Run these on the OS you want to ship (macOS `.dmg` / `.app` need a Mac). Tag `v*` (or run **Actions → Release**) to upload the same artifacts to a GitHub Release.
 
 ```bash
 npm install
@@ -47,7 +73,7 @@ npm install
 npm run build
 
 # explicit targets
-npm run build:mac      # .dmg and .zip  (run on macOS)
+npm run build:mac      # .dmg and .zip, each with the .app  (run on macOS)
 npm run build:win      # NSIS installer and .zip
 npm run build:linux    # AppImage and .zip
 
@@ -55,13 +81,9 @@ npm run build:linux    # AppImage and .zip
 npm run pack
 ```
 
-Artifacts land in `dist/`.
+Artifacts land in `dist/` as `x-video-window-<version>-<os>-<arch>.<ext>`.
 
-### macOS notes
-
-- Unsigned local builds: right-click the app → **Open** the first time (Gatekeeper).
-- Apple silicon and Intel: electron-builder produces a build for the machine you compile on. On Apple silicon you can also pass `--universal` if you need both architectures: `npx electron-builder --mac --universal --publish never`.
-- Packaged display name is **Unofficial 𝕏 (Twitter) Video Liberator**. `CFBundleName` is **𝕏 Video Liberator** so the Apple menu / Dock label can stay readable if the full name truncates.
+Packaged display name is **Unofficial 𝕏 (Twitter) Video Liberator**. `CFBundleName` is **𝕏 Video Liberator** so the Apple menu / Dock label can stay readable if the full name truncates.
 
 ## Open a video
 
@@ -129,4 +151,4 @@ test/            node:test unit tests
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). That is intentional. Electron is also MIT-licensed; there is no license conflict to resolve.
