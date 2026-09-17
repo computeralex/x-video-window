@@ -63,8 +63,19 @@ html.xvw-theater .xvw-hide-chrome {
   display: none !important;
 }
 
-/* Let the status column use the window once tweet chrome is gone.
-   max-width only — no flex/100vw on isolate-player ancestors. */
+/* Expand the status column after chrome is gone. Percent, not 100vw, and
+   no flex:1 on isolate ancestors. */
+html.xvw-theater {
+  --layout-width-primary: 100%;
+  --layout-min-primary: 0px;
+  --layout-width-two-column: 100%;
+}
+
+html.xvw-theater main[role="main"] {
+  border: none !important;
+  min-width: 0 !important;
+}
+
 html.xvw-theater [class*="max-w-[600px]"] {
   max-width: none !important;
 }

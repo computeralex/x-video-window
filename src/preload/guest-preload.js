@@ -40,6 +40,15 @@ html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
 html.xvw-theater .xvw-hide-chrome {
   display: none !important;
 }
+html.xvw-theater {
+  --layout-width-primary: 100%;
+  --layout-min-primary: 0px;
+  --layout-width-two-column: 100%;
+}
+html.xvw-theater main[role="main"] {
+  border: none !important;
+  min-width: 0 !important;
+}
 html.xvw-theater [class*="max-w-[600px]"] {
   max-width: none !important;
 }
