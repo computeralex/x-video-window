@@ -15,11 +15,16 @@ describe("Focus theater assets", () => {
       assert.match(source, /layout-width-right/);
       assert.match(source, /aside:not\(:has\(video\)\)/);
       assert.match(source, /aria-label="Follow"/);
-      assert.match(source, /aria-label="Like"/);
+      assert.match(source, /aria-label\*="Like"/);
       assert.match(source, /aria-label="Back"/);
     }
     assert.match(js, /hidePostChrome/);
+    assert.match(js, /hideNonVideoBranches/);
     assert.match(css, /--layout-width-two-column:\s*100vw/);
+    for (const source of [css, js, preload]) {
+      assert.match(source, /xlarge:flex/);
+      assert.match(source, /layout-width-two-column"\] ~ :not\(:has\(video\)\)/);
+    }
   });
 
   it("does not pin the player or restyle <video> (Mac media-layer blackout)", () => {
@@ -34,7 +39,7 @@ describe("Focus theater assets", () => {
     assert.doesNotMatch(js, /classList\.add\("xvw-player-root"\)/);
     assert.doesNotMatch(js, /classList\.add\("xvw-fill-box"\)/);
     assert.doesNotMatch(js, /unpinIfBlanked/);
-    assert.doesNotMatch(js, /hideNonVideoBranches/);
+    assert.doesNotMatch(js, /classList\.add\("xvw-player-root"\)/);
     assert.doesNotMatch(css, /z-index:\s*2147483000/);
     assert.doesNotMatch(preload, /z-index:\s*2147483000/);
   });

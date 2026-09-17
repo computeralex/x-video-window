@@ -57,24 +57,31 @@
       html.xvw-theater nav:not(:has(video)),
       html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
       html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
+      html.xvw-theater [class*="xlarge:flex"]:not(:has(video)),
+      html.xvw-theater [class*="layout-width-two-column"] > :not(:has(video)),
+      html.xvw-theater [class*="layout-width-two-column"] ~ :not(:has(video)),
       html.xvw-theater button[aria-label="Follow"],
       html.xvw-theater button[aria-label="Following"],
-      html.xvw-theater button[aria-label="Reply"],
-      html.xvw-theater button[aria-label="Repost"],
-      html.xvw-theater button[aria-label="Like"],
-      html.xvw-theater button[aria-label="Bookmark"],
-      html.xvw-theater button[aria-label="Share"],
+      html.xvw-theater button[aria-label*="Reply" i],
+      html.xvw-theater button[aria-label*="Repost" i],
+      html.xvw-theater button[aria-label*="Like" i],
+      html.xvw-theater button[aria-label*="Bookmark" i],
+      html.xvw-theater button[aria-label*="Share" i],
       html.xvw-theater button[aria-label="Back"],
       html.xvw-theater a[aria-label="Back"],
       html.xvw-theater h2,
       html.xvw-theater [aria-label="View count"],
       html.xvw-theater [aria-label="See all the replies"],
+      html.xvw-theater [aria-label*="Post your reply" i],
+      html.xvw-theater [href$="/quotes"],
       html.xvw-theater .xvw-hide-chrome {
         display: none !important;
       }
       html.xvw-theater {
         --layout-width-two-column: 100vw;
         --layout-width-primary: 100vw;
+        --layout-width-right: 0px;
+        --layout-min-right: 0px;
       }
       html.xvw-theater [class*="layout-width-two-column"],
       html.xvw-theater [class*="layout-width-primary"],
@@ -82,6 +89,7 @@
       html.xvw-theater main[role="main"] {
         max-width: none !important;
         width: 100% !important;
+        flex: 1 1 auto !important;
       }
     `
       : "";
@@ -153,7 +161,9 @@
     const cols = Array.from(row.children);
     if (cols.length < 2) return;
     const last = cols[cols.length - 1];
-    if (last && !last.querySelector("article") && !last.querySelector("video")) {
+    // Status VOD split: the right column IS the tweet article. Hide it
+    // whenever it does not contain the player.
+    if (last && !last.querySelector("video")) {
       last.style.setProperty("display", "none", "important");
     }
   }
@@ -194,6 +204,35 @@
     document.querySelectorAll(".xvw-hide-meta").forEach((n) => n.classList.remove("xvw-hide-meta"));
   }
 
+  function findPlayerRoot(video) {
+    if (!video) return null;
+    return (
+      video.closest('[class*="aspect-video"], [data-testid="videoPlayer"], [data-testid="videoComponent"]') ||
+      video.parentElement ||
+      video
+    );
+  }
+
+  function hideNonVideoBranches(video) {
+    const root = findPlayerRoot(video) || video;
+    if (!root) return;
+    const keep = new Set();
+    let node = root;
+    while (node && node !== document.documentElement) {
+      keep.add(node);
+      node.classList.remove("xvw-hide-chrome");
+      node = node.parentElement;
+    }
+    keep.forEach((el) => {
+      for (const child of Array.from(el.children || [])) {
+        if (keep.has(child)) continue;
+        if (child.querySelector && child.querySelector("video")) continue;
+        if (isPlayerControl(child)) continue;
+        child.classList.add("xvw-hide-chrome");
+      }
+    });
+  }
+
   function hidePostChrome() {
     document.querySelectorAll("aside, nav").forEach((el) => {
       if (el.querySelector && el.querySelector("video")) return;
@@ -204,29 +243,12 @@
       if (el.closest("video") || (el.querySelector && el.querySelector("video"))) return;
       if (isPlayerControl(el)) return;
       const label = `${el.getAttribute("aria-label") || ""} ${el.innerText || ""}`;
-      if (/Scan to get the app|Continue to X|See all the replies|Post your reply/i.test(label)) {
+      if (/Scan to get the app|Continue to X|See all the replies|Post your reply|View quotes|Relevant/i.test(label)) {
         el.classList.add("xvw-hide-chrome");
       }
     });
     const video = pickVideo();
-    const article = video && video.closest("article");
-    if (article) {
-      const hideTowardPlayer = (el) => {
-        for (const child of Array.from(el.children || [])) {
-          if (child === video || (child.querySelector && child.querySelector(":scope > video"))) {
-            continue;
-          }
-          if (child.contains && child.contains(video)) {
-            hideTowardPlayer(child);
-            continue;
-          }
-          if (child.querySelector && child.querySelector("video")) continue;
-          if (isPlayerControl(child)) continue;
-          child.classList.add("xvw-hide-chrome");
-        }
-      };
-      hideTowardPlayer(article);
-    }
+    if (video) hideNonVideoBranches(video);
   }
 
   function applyTheater() {
@@ -234,8 +256,8 @@
       clearTheaterMarks();
       return false;
     }
-    // Hide tweet chrome only. Do not pin, restyle, or restack <video>
-    // or its player root — that blanks the Mac media layer.
+    // Hide tweet chrome, including the logged-in xlarge sibling column.
+    // Do not pin or restyle <video> — that blanks the Mac media layer.
     document.documentElement.classList.add("xvw-theater");
     hidePostChrome();
     return true;
@@ -300,6 +322,13 @@
       inner: { w: innerWidth, h: innerHeight },
       tweetHidden: !tweet || getComputedStyle(tweet).display === "none" || tweet.getBoundingClientRect().height < 2,
       asideHidden: !aside || getComputedStyle(aside).display === "none" || aside.getBoundingClientRect().height < 2,
+      xlargePane: (() => {
+        const pane = document.querySelector('[class*="xlarge:flex"]');
+        if (!pane) return { present: false, hidden: true, w: 0 };
+        const r = pane.getBoundingClientRect();
+        const hidden = getComputedStyle(pane).display === "none" || r.width < 2;
+        return { present: true, hidden, w: Math.round(r.width), text: (pane.innerText || "").replace(/\s+/g, " ").trim().slice(0, 80) };
+      })(),
       xHover: { seek: Boolean(seek), mute: Boolean(mute) },
       video: video && {
         w: Math.round(r.width),
