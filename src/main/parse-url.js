@@ -115,11 +115,18 @@ function parseXUrl(input) {
 
   const status = url.pathname.match(STATUS_PATH);
   if (status) {
+    const path = url.pathname;
+    const userPost = /^\/(?!i\/)[^/]+\/status\/\d+/i.test(path);
+    const loadPath = userPost
+      ? path
+      : /\/video\/\d+\/?$/i.test(path)
+        ? path
+        : `/i/status/${status[1]}/video/1`;
     return {
       ok: true,
       kind: "status",
       id: status[1],
-      loadUrl: statusLoadUrl(status[1]),
+      loadUrl: `https://x.com${loadPath}`,
     };
   }
 

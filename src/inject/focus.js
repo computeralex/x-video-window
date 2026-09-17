@@ -136,19 +136,6 @@
     }
   }
 
-  function maybeOpenVideoPlayer() {
-    if (window.__xvwCompact === false) return;
-    const m = String(location.pathname || "").match(
-      /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/(\d+)/i
-    );
-    if (!m) return;
-    if (/\/video\/\d+\/?$/i.test(location.pathname)) return;
-    const id = m[1];
-    if (window.__xvwTriedVideoNav === id) return;
-    window.__xvwTriedVideoNav = id;
-    location.replace("https://x.com/i/status/" + id + "/video/1");
-  }
-
   function clearTheaterMarks() {
     document.documentElement.classList.remove("xvw-theater");
     document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
@@ -165,7 +152,6 @@
       return false;
     }
     document.documentElement.classList.add("xvw-theater");
-    maybeOpenVideoPlayer();
     hideAwayFromPlayer();
     return true;
   }

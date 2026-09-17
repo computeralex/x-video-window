@@ -26,7 +26,7 @@ describe("Focus theater assets", () => {
     assert.match(js, /playerShell/);
     assert.match(js, /isolate/);
     assert.match(js, /aspect-video/);
-    assert.match(js, /i\/status\/" \+ id \+ "\/video\/1/);
+    assert.doesNotMatch(js, /location\.replace/);
     assert.doesNotMatch(js, /hideNonVideoBranches/);
     assert.doesNotMatch(js, /hideDiscoverMore/);
     assert.doesNotMatch(js, /tagName === "VIDEO"/);

@@ -10,7 +10,7 @@ describe("parseXUrl", () => {
     assert.equal(r.ok, true);
     assert.equal(r.kind, "status");
     assert.equal(r.id, "1949680387330027593");
-    assert.equal(r.loadUrl, "https://x.com/i/status/1949680387330027593/video/1");
+    assert.equal(r.loadUrl, "https://x.com/SpaceX/status/1949680387330027593");
   });
 
   it("accepts twitter.com status URLs and tracking params", () => {
@@ -18,7 +18,7 @@ describe("parseXUrl", () => {
       "https://twitter.com/user/status/1234567890123456789?s=20&t=abc"
     );
     assert.equal(r.ok, true);
-    assert.equal(r.loadUrl, "https://x.com/i/status/1234567890123456789/video/1");
+    assert.equal(r.loadUrl, "https://x.com/user/status/1234567890123456789");
   });
 
   it("accepts /i/status and /i/web/status links", () => {
@@ -37,7 +37,7 @@ describe("parseXUrl", () => {
       "https://mobile.twitter.com/foo/status/1112223334445556667/video/1"
     );
     assert.equal(r.ok, true);
-    assert.equal(r.loadUrl, "https://x.com/i/status/1112223334445556667/video/1");
+    assert.equal(r.loadUrl, "https://x.com/foo/status/1112223334445556667/video/1");
   });
 
   it("accepts legacy i/videos/tweet URLs", () => {

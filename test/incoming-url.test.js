@@ -37,7 +37,7 @@ describe("incoming-url", () => {
 
     const status = parseIncoming("https://x.com/SpaceX/status/1949680387330027593");
     assert.equal(status.ok, true);
-    assert.equal(status.loadUrl, "https://x.com/i/status/1949680387330027593/video/1");
+    assert.equal(status.loadUrl, "https://x.com/SpaceX/status/1949680387330027593");
   });
 
   it("finds the first X URL in Electron argv (skips binary and app path)", () => {
@@ -66,7 +66,7 @@ describe("incoming-url", () => {
       "xvw://https://twitter.com/user/status/1234567890123456789",
     ]);
     assert.ok(scheme);
-    assert.equal(scheme.loadUrl, "https://x.com/i/status/1234567890123456789/video/1");
+    assert.equal(scheme.loadUrl, "https://x.com/user/status/1234567890123456789");
   });
 
   it("ignores argv without a watch URL", () => {
