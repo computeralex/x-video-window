@@ -454,6 +454,8 @@ function resolveOpen(text) {
 
 function openSignInWindow() {
   if (loginSession?.window && !loginSession.window.isDestroyed()) {
+    if (loginSession.window.isMinimized()) loginSession.window.restore();
+    loginSession.window.show();
     loginSession.window.focus();
     return { ok: true };
   }
