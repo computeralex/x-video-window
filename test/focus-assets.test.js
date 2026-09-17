@@ -21,12 +21,18 @@ describe("Focus theater assets", () => {
       assert.match(source, /self-stretch"\]\[class\*="xlarge:flex"\]/);
       assert.match(source, /layout-width-two-column"\] ~ \*/);
       assert.match(source, /xvw-hide-chrome/);
+      assert.match(source, /html\.xvw-theater aside/);
     }
     assert.match(js, /hideAwayFromPlayer/);
     assert.match(js, /playerShell/);
     assert.match(js, /isolate/);
     assert.match(js, /aspect-video/);
     assert.doesNotMatch(js, /location\.replace/);
+    const main = fs.readFileSync(path.join(__dirname, "../src/main/main.js"), "utf8");
+    assert.match(main, /maybeOpenStatusVideoPlayer/);
+    assert.match(main, /recoverBouncedVideoPlayer/);
+    assert.match(main, /sessionHasXAuth/);
+    assert.doesNotMatch(main, /location\.replace/);
     assert.doesNotMatch(js, /hideNonVideoBranches/);
     assert.doesNotMatch(js, /hideDiscoverMore/);
     assert.doesNotMatch(js, /tagName === "VIDEO"/);

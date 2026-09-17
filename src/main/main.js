@@ -14,7 +14,13 @@ const {
   shell,
 } = require("electron");
 
-const { parseXUrl } = require("./parse-url");
+const {
+  parseXUrl,
+  statusLoadUrl,
+  statusIdFromUrl,
+  isStatusVideoPlayerUrl,
+  isXHomeUrl,
+} = require("./parse-url");
 const { isAllowedNavigation } = require("./allowed");
 const { isAuthUrl, persistedLastUrl } = require("./auth");
 const { loadStore, saveStore, sanitizeBounds } = require("./store");
@@ -65,6 +71,9 @@ let playbackTimer = null;
 let resumeLock = null;
 const guardedGuests = new WeakSet();
 const insertedCssKeys = new WeakMap();
+// Focus ON may open /i/status/{id}/video/1 when the session can keep it.
+// Logged-out X bounces that URL to home — never leave the user there.
+let videoPlayerNav = null;
 
 function persistSoon() {
   clearTimeout(saveTimer);
@@ -162,6 +171,99 @@ function isAppFullscreen() {
   return Boolean(mainWindow.isFullScreen() || maximizeFallback);
 }
 
+async function sessionHasXAuth() {
+  try {
+    const xSession = session.fromPartition(PARTITION);
+    const cookies = await xSession.cookies.get({ name: "auth_token" });
+    if (cookies.some((cookie) => cookie.value)) return true;
+    const twid = await xSession.cookies.get({ name: "twid" });
+    return twid.some((cookie) => cookie.value);
+  } catch {
+    return false;
+  }
+}
+
+function resetVideoPlayerNav() {
+  videoPlayerNav = null;
+}
+
+function recoverBouncedVideoPlayer(contents) {
+  if (!contents || contents.isDestroyed() || !videoPlayerNav) return false;
+  const href = contents.getURL();
+  if (videoPlayerNav.pending) {
+    if (isStatusVideoPlayerUrl(href) && statusIdFromUrl(href) === videoPlayerNav.id) {
+      videoPlayerNav.pending = false;
+      videoPlayerNav.opened = true;
+      return false;
+    }
+    if (isXHomeUrl(href) || (statusIdFromUrl(href) && statusIdFromUrl(href) !== videoPlayerNav.id)) {
+      const fallback = videoPlayerNav.fallback;
+      videoPlayerNav = { id: videoPlayerNav.id, failed: true, reason: "bounce" };
+      if (fallback && href !== fallback) {
+        contents.loadURL(fallback);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+async function maybeOpenStatusVideoPlayer(contents) {
+  if (!contents || contents.isDestroyed()) return false;
+  if (state?.compact === false) return false;
+  const href = contents.getURL();
+  if (!href || href === "about:blank" || isAuthUrl(href)) return false;
+  const id = statusIdFromUrl(href);
+  if (!id) return false;
+  if (videoPlayerNav && videoPlayerNav.id && videoPlayerNav.id !== id && !videoPlayerNav.pending) {
+    videoPlayerNav = null;
+  }
+  if (isStatusVideoPlayerUrl(href)) {
+    if (!videoPlayerNav || videoPlayerNav.id !== id) {
+      videoPlayerNav = {
+        id,
+        fallback: `https://x.com/i/status/${id}`,
+        opened: true,
+      };
+    } else {
+      videoPlayerNav.opened = true;
+      videoPlayerNav.pending = false;
+    }
+    return false;
+  }
+  if (videoPlayerNav?.pending) return false;
+  if (videoPlayerNav?.id === id && videoPlayerNav.opened) return false;
+  if (videoPlayerNav?.id === id && videoPlayerNav.failed) {
+    if (videoPlayerNav.reason === "logged-out") {
+      const signedIn = await sessionHasXAuth();
+      if (!signedIn) return false;
+    } else if (videoPlayerNav.reason !== "focus-off") {
+      return false;
+    }
+  }
+  const signedIn = await sessionHasXAuth();
+  if (!signedIn) {
+    videoPlayerNav = { id, failed: true, reason: "logged-out" };
+    return false;
+  }
+  videoPlayerNav = { id, fallback: href, pending: true, opened: false, failed: false };
+  contents.loadURL(statusLoadUrl(id));
+  return true;
+}
+
+function restoreStatusFromVideoPlayer(contents) {
+  if (!contents || contents.isDestroyed() || !videoPlayerNav?.opened) return false;
+  const href = contents.getURL();
+  const fallback = videoPlayerNav.fallback;
+  if (!fallback || !isStatusVideoPlayerUrl(href)) {
+    videoPlayerNav = { id: videoPlayerNav.id, failed: true, reason: "focus-off" };
+    return false;
+  }
+  videoPlayerNav = { id: videoPlayerNav.id, failed: true, reason: "focus-off" };
+  contents.loadURL(fallback);
+  return true;
+}
+
 function applyGuestTheater() {
   if (!guestContents || guestContents.isDestroyed()) return;
   guestContents
@@ -229,6 +331,7 @@ function toggleAppFullscreen() {
 function deliverIncoming(parsed) {
   if (!parsed?.ok || !parsed.loadUrl) return false;
   if (isAuthUrl(parsed.loadUrl)) return false;
+  resetVideoPlayerNav();
   if (state) {
     state.lastUrl = parsed.loadUrl;
     persistSoon();
@@ -323,7 +426,14 @@ function attachGuestGuards(contents) {
     injectGuest(contents);
   });
   contents.on("did-stop-loading", () => {
+    if (recoverBouncedVideoPlayer(contents)) return;
     injectGuest(contents);
+    maybeOpenStatusVideoPlayer(contents).catch(() => {});
+  });
+  contents.on("did-navigate", (_event, url) => {
+    if (videoPlayerNav?.pending && isXHomeUrl(url)) {
+      recoverBouncedVideoPlayer(contents);
+    }
   });
   contents.on("before-input-event", handleAccelerators);
   applySessionPermissions(contents.session);
@@ -427,6 +537,15 @@ function createMenu() {
                 `window.__xvwSetCompact && window.__xvwSetCompact(${item.checked ? "true" : "false"})`,
                 true
               );
+              if (item.checked) {
+                if (videoPlayerNav?.failed) {
+                  videoPlayerNav.failed = false;
+                  videoPlayerNav.reason = undefined;
+                }
+                maybeOpenStatusVideoPlayer(guestContents).catch(() => {});
+              } else {
+                restoreStatusFromVideoPlayer(guestContents);
+              }
             }
             sendState();
           },
@@ -585,9 +704,15 @@ function registerIpc() {
 
   ipcMain.handle("is-auth-url", (_event, url) => isAuthUrl(url));
 
-  ipcMain.handle("open-url", (_event, text) => resolveOpen(text));
+  ipcMain.handle("open-url", (_event, text) => {
+    resetVideoPlayerNav();
+    return resolveOpen(text);
+  });
 
-  ipcMain.handle("paste-and-open", () => resolveOpen(clipboard.readText()));
+  ipcMain.handle("paste-and-open", () => {
+    resetVideoPlayerNav();
+    return resolveOpen(clipboard.readText());
+  });
 
   ipcMain.handle("set-always-on-top", (_event, value) => {
     state.alwaysOnTop = Boolean(value);
@@ -607,6 +732,15 @@ function registerIpc() {
           `window.__xvwSetCompact && window.__xvwSetCompact(${state.compact ? "true" : "false"})`,
           true
         );
+        if (state.compact) {
+          if (videoPlayerNav?.failed) {
+            videoPlayerNav.failed = false;
+            videoPlayerNav.reason = undefined;
+          }
+          await maybeOpenStatusVideoPlayer(guestContents);
+        } else {
+          restoreStatusFromVideoPlayer(guestContents);
+        }
       } catch {
         // ignore
       }

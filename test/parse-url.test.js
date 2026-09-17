@@ -5,6 +5,26 @@ const assert = require("node:assert/strict");
 const { parseXUrl } = require("../src/main/parse-url");
 
 describe("parseXUrl", () => {
+  it("keeps user status load URLs on the post path (video/1 is promoted later if the session can keep it)", () => {
+    const r = parseXUrl("https://x.com/ForrestPKnight/status/2099948470299750843");
+    assert.equal(r.loadUrl, "https://x.com/ForrestPKnight/status/2099948470299750843");
+    assert.equal(r.id, "2099948470299750843");
+  });
+
+  it("identifies status ids, video-player paths, and home bounces", () => {
+    const { statusIdFromUrl, isStatusVideoPlayerUrl, isXHomeUrl, statusLoadUrl } = require("../src/main/parse-url");
+    assert.equal(
+      statusIdFromUrl("https://x.com/ForrestPKnight/status/2099948470299750843"),
+      "2099948470299750843"
+    );
+    assert.equal(isStatusVideoPlayerUrl("https://x.com/i/status/2099948470299750843/video/1"), true);
+    assert.equal(isStatusVideoPlayerUrl("https://x.com/ForrestPKnight/status/2099948470299750843"), false);
+    assert.equal(isXHomeUrl("https://x.com/"), true);
+    assert.equal(isXHomeUrl("https://x.com/home"), true);
+    assert.equal(isXHomeUrl("https://x.com/ForrestPKnight/status/2099948470299750843"), false);
+    assert.equal(statusLoadUrl("2099948470299750843"), "https://x.com/i/status/2099948470299750843/video/1");
+  });
+
   it("accepts x.com status URLs", () => {
     const r = parseXUrl("https://x.com/SpaceX/status/1949680387330027593");
     assert.equal(r.ok, true);

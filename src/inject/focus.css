@@ -52,12 +52,15 @@ video {
   outline: none !important;
 }
 
-/* Tweet rail: sibling of the two-column player wrapper, not an ancestor of <video>. */
+/* Post chrome: rails + tweet copy + nodes marked from the isolate shell
+   outward. Never :has(video). Overlay sibling of <video> is inside isolate
+   and is never given .xvw-hide-chrome. */
 html.xvw-theater [class*="layout-width-two-column"] ~ *,
 html.xvw-theater [class*="layout-width-right"],
 html.xvw-theater [class*="layout-width-rail"],
 html.xvw-theater [class*="self-stretch"][class*="xlarge:flex"],
 html.xvw-theater [data-testid="sidebarColumn"],
+html.xvw-theater aside,
 html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
 html.xvw-theater .xvw-hide-chrome {
   display: none !important;

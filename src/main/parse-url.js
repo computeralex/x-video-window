@@ -68,6 +68,38 @@ function statusLoadUrl(id) {
   return `https://x.com/i/status/${id}/video/1`;
 }
 
+function statusIdFromUrl(urlString) {
+  const href = String(urlString || "");
+  try {
+    const path = new URL(href).pathname;
+    const match = path.match(/\/(?:i\/(?:web\/)?status|[^/]+\/status)\/(\d{5,20})/i);
+    return match ? match[1] : "";
+  } catch {
+    const match = href.match(/\/(?:i\/(?:web\/)?status|[^/]+\/status)\/(\d{5,20})/i);
+    return match ? match[1] : "";
+  }
+}
+
+function isStatusVideoPlayerUrl(urlString) {
+  const href = String(urlString || "");
+  try {
+    return /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d{5,20}\/video\/\d+/i.test(
+      new URL(href).pathname
+    );
+  } catch {
+    return /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/\d{5,20}\/video\/\d+/i.test(href);
+  }
+}
+
+function isXHomeUrl(urlString) {
+  try {
+    const path = new URL(urlString).pathname.replace(/\/+$/, "") || "/";
+    return path === "/" || path === "/home" || path === "/i/timeline";
+  } catch {
+    return false;
+  }
+}
+
 function parseXUrl(input) {
   if (input == null) {
     return { ok: false, error: "Paste an X post or video link." };
@@ -154,4 +186,7 @@ module.exports = {
   unwrapCustomScheme,
   hostAllowed,
   statusLoadUrl,
+  statusIdFromUrl,
+  isStatusVideoPlayerUrl,
+  isXHomeUrl,
 };
