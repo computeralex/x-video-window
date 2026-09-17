@@ -1,0 +1,47 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 48px;
+  background: #0f1113;
+  color: #e7e9ea;
+  font: 12px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+.login-bar {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border-bottom: 1px solid #2f3336;
+}
+
+.login-bar p {
+  margin: 0;
+  flex: 1;
+  color: #8b98a5;
+}
+
+.done {
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: #1d9bf0;
+  color: #fff;
+  font-weight: 600;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.done:hover {
+  background: #4db2f5;
+}

@@ -1,0 +1,84 @@
+/* Hide X chrome so the post / video is the focus. Auth flows are left alone in JS.
+   Never restyle <video>, never position:fixed the isolate player, never :has(video).
+   Overlay sibling of <video> must stay visible (Mac freeze/dim). */
+
+header[role="banner"] {
+  display: none !important;
+}
+
+[data-testid="sidebarColumn"],
+[data-testid="BottomBar"],
+div[aria-label="Trending"],
+div[aria-label="Timeline: Trending now"],
+div[data-testid="DMDrawer"] {
+  display: none !important;
+}
+
+main[role="main"] {
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+[data-testid="primaryColumn"] {
+  max-width: 100% !important;
+  width: 100% !important;
+  border: none !important;
+  margin: 0 auto !important;
+}
+
+[data-testid="primaryColumn"] > div {
+  max-width: 100% !important;
+}
+
+[data-testid="primaryColumn"] [data-testid="ScrollSnap-Accessibility-Target"] {
+  top: 0 !important;
+}
+
+body {
+  background: #000 !important;
+}
+
+#react-root {
+  background: #000 !important;
+}
+
+[data-testid="videoPlayer"],
+[data-testid="videoComponent"] {
+  max-width: none !important;
+}
+
+video {
+  outline: none !important;
+}
+
+/* Post chrome: rails + tweet copy + nodes marked from the isolate shell
+   outward. Never :has(video). Overlay sibling of <video> is inside isolate
+   and is never given .xvw-hide-chrome. */
+html.xvw-theater [class*="layout-width-two-column"] ~ *,
+html.xvw-theater [class*="layout-width-right"],
+html.xvw-theater [class*="layout-width-rail"],
+html.xvw-theater [class*="self-stretch"][class*="xlarge:flex"],
+html.xvw-theater [data-testid="sidebarColumn"],
+html.xvw-theater aside,
+html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
+html.xvw-theater .xvw-hide-chrome {
+  display: none !important;
+}
+
+/* Expand the status column after chrome is gone. Percent, not 100vw, and
+   no flex:1 on isolate ancestors. */
+html.xvw-theater {
+  --layout-width-primary: 100%;
+  --layout-min-primary: 0px;
+  --layout-width-two-column: 100%;
+}
+
+html.xvw-theater main[role="main"] {
+  border: none !important;
+  min-width: 0 !important;
+}
+
+html.xvw-theater [class*="max-w-[600px]"] {
+  max-width: none !important;
+}

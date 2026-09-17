@@ -1,0 +1,120 @@
+{
+  "name": "x-video-window",
+  "version": "1.0.0",
+  "description": "Unofficial 𝕏 (Twitter) Video Liberator — freely resizable desktop player that overcomes X’s fixed video layout",
+  "main": "src/main/main.js",
+  "author": "x-video-window contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/computeralex/x-video-window",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/computeralex/x-video-window.git"
+  },
+  "bugs": {
+    "url": "https://github.com/computeralex/x-video-window/issues"
+  },
+  "keywords": [
+    "x",
+    "twitter",
+    "video",
+    "electron",
+    "player",
+    "always-on-top"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:linux": "electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^35.2.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.computeralex.xvideowindow",
+    "productName": "Unofficial 𝕏 (Twitter) Video Liberator",
+    "executableName": "x-video-window",
+    "copyright": "MIT",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "assets/icon.png",
+      "package.json"
+    ],
+    "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "protocols": [
+      {
+        "name": "Unofficial 𝕏 (Twitter) Video Liberator",
+        "schemes": [
+          "xvw"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.video",
+      "icon": "assets/icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null,
+      "extendInfo": {
+        "CFBundleDisplayName": "Unofficial 𝕏 (Twitter) Video Liberator",
+        "CFBundleName": "𝕏 Video Liberator",
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "Web URL",
+            "CFBundleTypeRole": "Viewer",
+            "LSItemContentTypes": [
+              "public.url",
+              "public.url-name",
+              "com.apple.web-internet-location"
+            ],
+            "LSHandlerRank": "Alternate"
+          }
+        ]
+      }
+    },
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "AudioVideo",
+      "mimeTypes": [
+        "x-scheme-handler/xvw"
+      ],
+      "desktop": {
+        "entry": {
+          "Name": "Unofficial 𝕏 (Twitter) Video Liberator",
+          "MimeType": "x-scheme-handler/xvw;"
+        }
+      },
+      "target": [
+        "AppImage",
+        "zip"
+      ]
+    }
+  }
+}
