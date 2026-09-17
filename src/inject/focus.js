@@ -46,8 +46,13 @@
       html.xvw-theater [class*="layout-width-right"],
       html.xvw-theater [class*="layout-width-rail"],
       html.xvw-theater [class*="self-stretch"][class*="xlarge:flex"],
-      html.xvw-theater [data-testid="sidebarColumn"] {
+      html.xvw-theater [data-testid="sidebarColumn"],
+      html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
+      html.xvw-theater .xvw-hide-chrome {
         display: none !important;
+      }
+      html.xvw-theater [class*="max-w-[600px]"] {
+        max-width: none !important;
       }
     `
       : "";
@@ -100,6 +105,50 @@
     return videos[0];
   }
 
+  function playerShell(video) {
+    if (!video) return null;
+    let n = video.parentElement;
+    let shell = n;
+    while (n && n !== document.body) {
+      const cls = String(n.className || "");
+      if (cls.includes("isolate") && cls.includes("aspect-video")) return n;
+      if (cls.includes("aspect-video")) shell = n;
+      n = n.parentElement;
+    }
+    return shell;
+  }
+
+  function hideAwayFromPlayer() {
+    const video = pickVideo();
+    if (!video) return;
+    const shell = playerShell(video);
+    if (!shell) return;
+    let node = shell.parentElement;
+    while (node && node !== document.documentElement) {
+      const kids = node.children;
+      for (let i = 0; i < kids.length; i++) {
+        const sib = kids[i];
+        if (sib === shell || sib.contains(shell)) continue;
+        if (shell.contains(sib)) continue;
+        if (!sib.classList.contains("xvw-hide-chrome")) sib.classList.add("xvw-hide-chrome");
+      }
+      node = node.parentElement;
+    }
+  }
+
+  function maybeOpenVideoPlayer() {
+    if (window.__xvwCompact === false) return;
+    const m = String(location.pathname || "").match(
+      /\/(?:i\/(?:web\/)?status|[^/]+\/status)\/(\d+)/i
+    );
+    if (!m) return;
+    if (/\/video\/\d+\/?$/i.test(location.pathname)) return;
+    const id = m[1];
+    if (window.__xvwTriedVideoNav === id) return;
+    window.__xvwTriedVideoNav = id;
+    location.replace("https://x.com/i/status/" + id + "/video/1");
+  }
+
   function clearTheaterMarks() {
     document.documentElement.classList.remove("xvw-theater");
     document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
@@ -115,8 +164,9 @@
       clearTheaterMarks();
       return false;
     }
-    // CSS selectors hide tweet chrome. Do not walk or restyle the player tree.
     document.documentElement.classList.add("xvw-theater");
+    maybeOpenVideoPlayer();
+    hideAwayFromPlayer();
     return true;
   }
 
@@ -127,8 +177,10 @@
       return;
     }
     const wantTheater = window.__xvwCompact !== false && isWatchPath(location.pathname);
-    const hasTheater = document.documentElement.classList.contains("xvw-theater");
-    if (wantTheater === hasTheater) return;
+    if (!wantTheater) {
+      clearTheaterMarks();
+      return;
+    }
     applyTheater();
   }
 
@@ -188,6 +240,17 @@
         return { present: true, hidden, w: Math.round(r.width), text: (pane.innerText || "").replace(/\s+/g, " ").trim().slice(0, 80) };
       })(),
       xHover: { seek: Boolean(seek), mute: Boolean(mute) },
+      overlay: (() => {
+        if (!video || !video.parentElement) return null;
+        const sib = Array.from(video.parentElement.children).find((c) => c !== video);
+        if (!sib) return { present: false };
+        return {
+          present: true,
+          tag: sib.tagName,
+          display: getComputedStyle(sib).display,
+          cls: String(sib.className || "").slice(0, 80),
+        };
+      })(),
       video: video && {
         w: Math.round(r.width),
         h: Math.round(r.height),

@@ -623,7 +623,12 @@ function registerIpc() {
       }
       return;
     }
-    state.lastUrl = url;
+    const parsed = parseXUrl(url);
+    if (parsed.ok && parsed.kind === "status" && parsed.loadUrl) {
+      state.lastUrl = parsed.loadUrl;
+    } else {
+      state.lastUrl = url;
+    }
     persistSoon();
   });
 

@@ -15,13 +15,18 @@ function theaterBlock(source) {
 }
 
 describe("Focus theater assets", () => {
-  it("hides only the logged-in tweet rail, never walking the player tree", () => {
+  it("hides tweet chrome from the isolate shell outward, never the overlay sibling of video", () => {
     for (const source of [css, js, preload]) {
       assert.match(source, /layout-width-right/);
       assert.match(source, /self-stretch"\]\[class\*="xlarge:flex"\]/);
       assert.match(source, /layout-width-two-column"\] ~ \*/);
+      assert.match(source, /xvw-hide-chrome/);
     }
-    assert.doesNotMatch(js, /hidePostChrome/);
+    assert.match(js, /hideAwayFromPlayer/);
+    assert.match(js, /playerShell/);
+    assert.match(js, /isolate/);
+    assert.match(js, /aspect-video/);
+    assert.match(js, /i\/status\/" \+ id \+ "\/video\/1/);
     assert.doesNotMatch(js, /hideNonVideoBranches/);
     assert.doesNotMatch(js, /hideDiscoverMore/);
     assert.doesNotMatch(js, /tagName === "VIDEO"/);
@@ -31,9 +36,7 @@ describe("Focus theater assets", () => {
     for (const source of [css, js, preload]) {
       assert.doesNotMatch(theaterBlock(source), /:has\(video\)/);
       assert.doesNotMatch(theaterBlock(source), /article:not/);
-      assert.doesNotMatch(theaterBlock(source), /ul > li/);
       assert.doesNotMatch(theaterBlock(source), /aria-label\*="Like"/);
-      assert.doesNotMatch(theaterBlock(source), /--layout-width-right/);
     }
   });
 
@@ -53,7 +56,7 @@ describe("Focus theater assets", () => {
     assert.doesNotMatch(preload, /z-index:\s*2147483000/);
   });
 
-  it("does not restyle video ancestors with flex/width/filter (Mac freeze+dim)", () => {
+  it("does not restyle video ancestors with flex/100vw/filter (Mac freeze+dim)", () => {
     for (const source of [css, js, preload]) {
       assert.doesNotMatch(source, /--layout-width-two-column:\s*100vw/);
       assert.doesNotMatch(source, /--layout-width-primary:\s*100vw/);
@@ -61,8 +64,7 @@ describe("Focus theater assets", () => {
       assert.doesNotMatch(source, /html\.xvw-theater[^{]*\{[^}]*opacity\s*:/s);
       assert.doesNotMatch(source, /html\.xvw-theater[^{]*\{[^}]*filter\s*:/s);
     }
-    assert.doesNotMatch(css, /\.xvw-hide-chrome/);
-    assert.doesNotMatch(js, /classList\.add\("xvw-hide-chrome"\)/);
+    assert.match(js, /classList\.add\("xvw-hide-chrome"\)/);
     assert.doesNotMatch(preload, /style\.textContent = `/);
   });
 

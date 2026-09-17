@@ -35,8 +35,13 @@ html.xvw-theater [class*="layout-width-two-column"] ~ *,
 html.xvw-theater [class*="layout-width-right"],
 html.xvw-theater [class*="layout-width-rail"],
 html.xvw-theater [class*="self-stretch"][class*="xlarge:flex"],
-html.xvw-theater [data-testid="sidebarColumn"] {
+html.xvw-theater [data-testid="sidebarColumn"],
+html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
+html.xvw-theater .xvw-hide-chrome {
   display: none !important;
+}
+html.xvw-theater [class*="max-w-[600px]"] {
+  max-width: none !important;
 }
 `;
 

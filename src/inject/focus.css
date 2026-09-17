@@ -1,7 +1,6 @@
 /* Hide X chrome so the post / video is the focus. Auth flows are left alone in JS.
-   Theater must never restyle <video> or its ancestors (width/flex/transform/
-   filter/opacity) and must not use :has(video) — that invalidates on every
-   player overlay mutation and freezes Mac Electron's media layer. */
+   Never restyle <video>, never position:fixed the isolate player, never :has(video).
+   Overlay sibling of <video> must stay visible (Mac freeze/dim). */
 
 header[role="banner"] {
   display: none !important;
@@ -53,14 +52,19 @@ video {
   outline: none !important;
 }
 
-/* Rail only. The logged-in tweet column is a sibling of the two-column
-   player wrapper (class includes xlarge:flex self-stretch), never an
-   ancestor of <video>. Do not hide article/ul descendants or anything
-   that could be the isolate overlay beside <video>. */
+/* Tweet rail: sibling of the two-column player wrapper, not an ancestor of <video>. */
 html.xvw-theater [class*="layout-width-two-column"] ~ *,
 html.xvw-theater [class*="layout-width-right"],
 html.xvw-theater [class*="layout-width-rail"],
 html.xvw-theater [class*="self-stretch"][class*="xlarge:flex"],
-html.xvw-theater [data-testid="sidebarColumn"] {
+html.xvw-theater [data-testid="sidebarColumn"],
+html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
+html.xvw-theater .xvw-hide-chrome {
   display: none !important;
+}
+
+/* Let the status column use the window once tweet chrome is gone.
+   max-width only — no flex/100vw on isolate-player ancestors. */
+html.xvw-theater [class*="max-w-[600px]"] {
+  max-width: none !important;
 }
