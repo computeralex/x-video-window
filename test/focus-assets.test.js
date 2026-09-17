@@ -20,6 +20,7 @@ describe("Focus theater assets", () => {
     }
     assert.match(js, /hidePostChrome/);
     assert.match(js, /hideNonVideoBranches/);
+    assert.match(js, /tagName === "VIDEO"/);
     assert.match(css, /--layout-width-two-column:\s*100vw/);
     for (const source of [css, js, preload]) {
       assert.match(source, /xlarge:flex/);

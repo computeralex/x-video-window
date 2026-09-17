@@ -217,7 +217,15 @@
     const root = findPlayerRoot(video) || video;
     if (!root) return;
     const keep = new Set();
-    let node = root;
+    // Start at <video> so the media element itself is never marked hidden.
+    // querySelector("video") does not match the element it is called on.
+    let node = video;
+    while (node && node !== document.documentElement) {
+      keep.add(node);
+      node.classList.remove("xvw-hide-chrome");
+      node = node.parentElement;
+    }
+    node = root;
     while (node && node !== document.documentElement) {
       keep.add(node);
       node.classList.remove("xvw-hide-chrome");
@@ -226,7 +234,8 @@
     keep.forEach((el) => {
       for (const child of Array.from(el.children || [])) {
         if (keep.has(child)) continue;
-        if (child.querySelector && child.querySelector("video")) continue;
+        if (child.tagName === "VIDEO" || child.tagName === "CANVAS") continue;
+        if (child.querySelector && child.querySelector("video, canvas")) continue;
         if (isPlayerControl(child)) continue;
         child.classList.add("xvw-hide-chrome");
       }
