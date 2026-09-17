@@ -19,6 +19,9 @@ describe("Focus theater assets", () => {
       assert.match(source, /aria-label="Back"/);
       assert.match(source, /xlarge:flex/);
       assert.match(source, /layout-width-two-column"\] ~ :not\(:has\(video\)\)/);
+      assert.match(source, /ul > li:not\(:has\(video\)\)/);
+      assert.match(source, /article:not\(:has\(video\)\)/);
+      assert.match(source, /article \[class\*="flex-col"\]\[class\*="gap-3"\] > :not\(:has\(video\)\)/);
     }
     assert.doesNotMatch(js, /hidePostChrome/);
     assert.doesNotMatch(js, /hideNonVideoBranches/);
