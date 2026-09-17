@@ -9,25 +9,32 @@ const css = fs.readFileSync(path.join(__dirname, "../src/inject/focus.css"), "ut
 const js = fs.readFileSync(path.join(__dirname, "../src/inject/focus.js"), "utf8");
 const preload = fs.readFileSync(path.join(__dirname, "../src/preload/guest-preload.js"), "utf8");
 
+function theaterBlock(source) {
+  const idx = source.indexOf("html.xvw-theater");
+  return idx === -1 ? "" : source.slice(idx);
+}
+
 describe("Focus theater assets", () => {
-  it("hides known tweet chrome by selector, never walking the player tree", () => {
+  it("hides only the logged-in tweet rail, never walking the player tree", () => {
     for (const source of [css, js, preload]) {
       assert.match(source, /layout-width-right/);
-      assert.match(source, /aside:not\(:has\(video\)\)/);
-      assert.match(source, /aria-label="Follow"/);
-      assert.match(source, /aria-label\*="Like"/);
-      assert.match(source, /aria-label="Back"/);
-      assert.match(source, /xlarge:flex/);
-      assert.match(source, /layout-width-two-column"\] ~ :not\(:has\(video\)\)/);
-      assert.match(source, /ul > li:not\(:has\(video\)\)/);
-      assert.match(source, /article:not\(:has\(video\)\)/);
-      assert.match(source, /article \[class\*="flex-col"\]\[class\*="gap-3"\] > :not\(:has\(video\)\)/);
-      assert.match(source, /aria-label="Loading post"/);
+      assert.match(source, /self-stretch"\]\[class\*="xlarge:flex"\]/);
+      assert.match(source, /layout-width-two-column"\] ~ \*/);
     }
     assert.doesNotMatch(js, /hidePostChrome/);
     assert.doesNotMatch(js, /hideNonVideoBranches/);
     assert.doesNotMatch(js, /hideDiscoverMore/);
     assert.doesNotMatch(js, /tagName === "VIDEO"/);
+  });
+
+  it("does not use :has(video) in theater CSS (Mac style-invalidation freeze)", () => {
+    for (const source of [css, js, preload]) {
+      assert.doesNotMatch(theaterBlock(source), /:has\(video\)/);
+      assert.doesNotMatch(theaterBlock(source), /article:not/);
+      assert.doesNotMatch(theaterBlock(source), /ul > li/);
+      assert.doesNotMatch(theaterBlock(source), /aria-label\*="Like"/);
+      assert.doesNotMatch(theaterBlock(source), /--layout-width-right/);
+    }
   });
 
   it("does not pin the player or restyle <video> (Mac media-layer blackout)", () => {
@@ -51,7 +58,6 @@ describe("Focus theater assets", () => {
       assert.doesNotMatch(source, /--layout-width-two-column:\s*100vw/);
       assert.doesNotMatch(source, /--layout-width-primary:\s*100vw/);
       assert.doesNotMatch(source, /flex:\s*1 1 auto/);
-      assert.doesNotMatch(source, /layout-width-two-column"\] > :not\(:has\(video\)\)/);
       assert.doesNotMatch(source, /html\.xvw-theater[^{]*\{[^}]*opacity\s*:/s);
       assert.doesNotMatch(source, /html\.xvw-theater[^{]*\{[^}]*filter\s*:/s);
     }

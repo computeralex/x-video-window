@@ -28,53 +28,15 @@ function isWatchPath(pathname) {
   );
 }
 
-// Selector-only: never restyle <video> or its ancestors (width/flex/
-// opacity/filter). Rewriting this stylesheet on every mutation was enough
-// to freeze Mac Electron's media layer.
+// Rail-only theater. Never :has(video) (Mac style-invalidation freeze),
+// never restyle <video> or its ancestors, never hide isolate overlay.
 const THEATER_CSS = `
-html.xvw-theater aside:not(:has(video)),
-html.xvw-theater nav:not(:has(video)),
-html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
-html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
-html.xvw-theater [class*="xlarge:flex"]:not(:has(video)),
-html.xvw-theater [class*="layout-width-two-column"] ~ :not(:has(video)),
-html.xvw-theater ul > li:not(:has(video)),
-html.xvw-theater article:not(:has(video)),
-html.xvw-theater article [class*="flex-col"][class*="gap-3"] > :not(:has(video)),
-html.xvw-theater article [class*="w-[calc(100%+16px)]"]:not(:has(video)),
-html.xvw-theater article [class*="border-t"]:not(:has(video)),
-html.xvw-theater [aria-label="Loading post"],
-html.xvw-theater [data-testid="sidebarColumn"]:not(:has(video)),
-html.xvw-theater [data-testid="BottomBar"],
-html.xvw-theater [data-testid="inlinePrompt"],
-html.xvw-theater [data-testid="tweetButtonInline"],
-html.xvw-theater [data-testid="cellInnerDiv"]:nth-child(n + 2):not(:has(video)),
-html.xvw-theater [aria-label="Timeline: Conversation"] > div > div > div:nth-child(n + 2):not(:has(video)),
-html.xvw-theater [data-testid="tweetText"]:not(:has(video)),
-html.xvw-theater [data-testid="User-Name"],
-html.xvw-theater [data-testid="caret"],
-html.xvw-theater [data-testid^="UserAvatar-Container"],
-html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
-html.xvw-theater button[aria-label="Follow"],
-html.xvw-theater button[aria-label="Following"],
-html.xvw-theater button[aria-label*="Reply" i],
-html.xvw-theater button[aria-label*="Repost" i],
-html.xvw-theater button[aria-label*="Like" i],
-html.xvw-theater button[aria-label*="Bookmark" i],
-html.xvw-theater button[aria-label*="Share" i],
-html.xvw-theater button[aria-label="Back"],
-html.xvw-theater a[aria-label="Back"],
-html.xvw-theater h2:not(:has(video)),
-html.xvw-theater [aria-label="View count"],
-html.xvw-theater [aria-label="See all the replies"],
-html.xvw-theater [aria-label*="Post your reply" i],
-html.xvw-theater [href$="/analytics"],
-html.xvw-theater [href$="/quotes"] {
+html.xvw-theater [class*="layout-width-two-column"] ~ *,
+html.xvw-theater [class*="layout-width-right"],
+html.xvw-theater [class*="layout-width-rail"],
+html.xvw-theater [class*="self-stretch"][class*="xlarge:flex"],
+html.xvw-theater [data-testid="sidebarColumn"] {
   display: none !important;
-}
-html.xvw-theater {
-  --layout-width-right: 0px;
-  --layout-min-right: 0px;
 }
 `;
 
