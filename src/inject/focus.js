@@ -40,17 +40,6 @@
       return "header[role='banner'] { display: revert !important; }";
     }
 
-    const replies = compact
-      ? `
-      [data-testid="cellInnerDiv"]:nth-child(n+2),
-      [aria-label="Timeline: Conversation"] > div > div > div:nth-child(n+2),
-      [data-testid="inlinePrompt"],
-      [href$="/analytics"] {
-        display: none !important;
-      }
-    `
-      : "";
-
     const theater = compact
       ? `
       html.xvw-theater aside:not(:has(video)),
@@ -58,8 +47,18 @@
       html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
       html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
       html.xvw-theater [class*="xlarge:flex"]:not(:has(video)),
-      html.xvw-theater [class*="layout-width-two-column"] > :not(:has(video)),
       html.xvw-theater [class*="layout-width-two-column"] ~ :not(:has(video)),
+      html.xvw-theater [data-testid="sidebarColumn"]:not(:has(video)),
+      html.xvw-theater [data-testid="BottomBar"],
+      html.xvw-theater [data-testid="inlinePrompt"],
+      html.xvw-theater [data-testid="tweetButtonInline"],
+      html.xvw-theater [data-testid="cellInnerDiv"]:nth-child(n + 2):not(:has(video)),
+      html.xvw-theater [aria-label="Timeline: Conversation"] > div > div > div:nth-child(n + 2):not(:has(video)),
+      html.xvw-theater [data-testid="tweetText"]:not(:has(video)),
+      html.xvw-theater [data-testid="User-Name"],
+      html.xvw-theater [data-testid="caret"],
+      html.xvw-theater [data-testid^="UserAvatar-Container"],
+      html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
       html.xvw-theater button[aria-label="Follow"],
       html.xvw-theater button[aria-label="Following"],
       html.xvw-theater button[aria-label*="Reply" i],
@@ -69,27 +68,17 @@
       html.xvw-theater button[aria-label*="Share" i],
       html.xvw-theater button[aria-label="Back"],
       html.xvw-theater a[aria-label="Back"],
-      html.xvw-theater h2,
+      html.xvw-theater h2:not(:has(video)),
       html.xvw-theater [aria-label="View count"],
       html.xvw-theater [aria-label="See all the replies"],
       html.xvw-theater [aria-label*="Post your reply" i],
-      html.xvw-theater [href$="/quotes"],
-      html.xvw-theater .xvw-hide-chrome {
+      html.xvw-theater [href$="/analytics"],
+      html.xvw-theater [href$="/quotes"] {
         display: none !important;
       }
       html.xvw-theater {
-        --layout-width-two-column: 100vw;
-        --layout-width-primary: 100vw;
         --layout-width-right: 0px;
         --layout-min-right: 0px;
-      }
-      html.xvw-theater [class*="layout-width-two-column"],
-      html.xvw-theater [class*="layout-width-primary"],
-      html.xvw-theater [class*="max-w-[600px]"],
-      html.xvw-theater main[role="main"] {
-        max-width: none !important;
-        width: 100% !important;
-        flex: 1 1 auto !important;
       }
     `
       : "";
@@ -115,7 +104,6 @@
       [data-testid="videoComponent"] {
         max-width: none !important;
       }
-      ${replies}
       ${theater}
     `;
   }
@@ -131,43 +119,6 @@
     if (el.textContent !== next) el.textContent = next;
   }
 
-  function hideDiscoverMore(root) {
-    if (window.__xvwCompact === false || isAuthPath(location.pathname)) return;
-    const headings = root.querySelectorAll("span, h2, h3");
-    headings.forEach((node) => {
-      const text = (node.textContent || "").trim();
-      if (
-        /^(Discover more|More posts|You might like|Who to follow|What's happening|See all the replies|Continue to X|Log in or sign up for X|New to X\?|Relevant people|Don’t miss what’s happening|Don't miss what’s happening|Scan to get the app)$/i.test(
-          text
-        )
-      ) {
-        const cell = node.closest('[data-testid="cellInnerDiv"]') || node.closest("section");
-        if (cell && !cell.querySelector("video")) {
-          cell.style.setProperty("display", "none", "important");
-        }
-      }
-    });
-  }
-
-  function hideRightRail() {
-    if (isAuthPath(location.pathname)) return;
-    const sidebar = document.querySelector('[data-testid="sidebarColumn"]');
-    if (sidebar) sidebar.style.setProperty("display", "none", "important");
-
-    const main = document.querySelector("main[role='main']");
-    if (!main) return;
-    const row = main.querySelector(":scope > div > div");
-    if (!row) return;
-    const cols = Array.from(row.children);
-    if (cols.length < 2) return;
-    const last = cols[cols.length - 1];
-    // Status VOD split: the right column IS the tweet article. Hide it
-    // whenever it does not contain the player.
-    if (last && !last.querySelector("video")) {
-      last.style.setProperty("display", "none", "important");
-    }
-  }
-
   function pickVideo() {
     const videos = Array.from(document.querySelectorAll("video"));
     if (!videos.length) return null;
@@ -180,20 +131,6 @@
     return videos[0];
   }
 
-  function isPlayerControl(el) {
-    if (!el || el.nodeType !== 1) return false;
-    const label = `${el.getAttribute("aria-label") || ""} ${el.getAttribute("title") || ""}`.toLowerCase();
-    if (/mute|unmute|volume|play|pause|seek|scrub|fullscreen|full screen/.test(label)) {
-      return true;
-    }
-    return Boolean(
-      el.querySelector &&
-        el.querySelector(
-          "[aria-label='Unmute'], [aria-label='Mute'], [aria-label='Play'], [aria-label='Pause'], [aria-label='Seek slider'], [aria-label*='olume'], [aria-label*='ull screen'], [aria-label*='ullscreen']"
-        )
-    );
-  }
-
   function clearTheaterMarks() {
     document.documentElement.classList.remove("xvw-theater");
     document.querySelectorAll(".xvw-hide-chrome").forEach((n) => n.classList.remove("xvw-hide-chrome"));
@@ -204,71 +141,13 @@
     document.querySelectorAll(".xvw-hide-meta").forEach((n) => n.classList.remove("xvw-hide-meta"));
   }
 
-  function findPlayerRoot(video) {
-    if (!video) return null;
-    return (
-      video.closest('[class*="aspect-video"], [data-testid="videoPlayer"], [data-testid="videoComponent"]') ||
-      video.parentElement ||
-      video
-    );
-  }
-
-  function hideNonVideoBranches(video) {
-    const root = findPlayerRoot(video) || video;
-    if (!root) return;
-    const keep = new Set();
-    // Start at <video> so the media element itself is never marked hidden.
-    // querySelector("video") does not match the element it is called on.
-    let node = video;
-    while (node && node !== document.documentElement) {
-      keep.add(node);
-      node.classList.remove("xvw-hide-chrome");
-      node = node.parentElement;
-    }
-    node = root;
-    while (node && node !== document.documentElement) {
-      keep.add(node);
-      node.classList.remove("xvw-hide-chrome");
-      node = node.parentElement;
-    }
-    keep.forEach((el) => {
-      for (const child of Array.from(el.children || [])) {
-        if (keep.has(child)) continue;
-        if (child.tagName === "VIDEO" || child.tagName === "CANVAS") continue;
-        if (child.querySelector && child.querySelector("video, canvas")) continue;
-        if (isPlayerControl(child)) continue;
-        child.classList.add("xvw-hide-chrome");
-      }
-    });
-  }
-
-  function hidePostChrome() {
-    document.querySelectorAll("aside, nav").forEach((el) => {
-      if (el.querySelector && el.querySelector("video")) return;
-      if (isPlayerControl(el)) return;
-      el.classList.add("xvw-hide-chrome");
-    });
-    document.querySelectorAll("button").forEach((el) => {
-      if (el.closest("video") || (el.querySelector && el.querySelector("video"))) return;
-      if (isPlayerControl(el)) return;
-      const label = `${el.getAttribute("aria-label") || ""} ${el.innerText || ""}`;
-      if (/Scan to get the app|Continue to X|See all the replies|Post your reply|View quotes|Relevant/i.test(label)) {
-        el.classList.add("xvw-hide-chrome");
-      }
-    });
-    const video = pickVideo();
-    if (video) hideNonVideoBranches(video);
-  }
-
   function applyTheater() {
     if (window.__xvwCompact === false || isAuthPath(location.pathname) || !isWatchPath(location.pathname)) {
       clearTheaterMarks();
       return false;
     }
-    // Hide tweet chrome, including the logged-in xlarge sibling column.
-    // Do not pin or restyle <video> — that blanks the Mac media layer.
+    // CSS selectors hide tweet chrome. Do not walk or restyle the player tree.
     document.documentElement.classList.add("xvw-theater");
-    hidePostChrome();
     return true;
   }
 
@@ -278,8 +157,9 @@
       clearTheaterMarks();
       return;
     }
-    hideDiscoverMore(document);
-    hideRightRail();
+    const wantTheater = window.__xvwCompact !== false && isWatchPath(location.pathname);
+    const hasTheater = document.documentElement.classList.contains("xvw-theater");
+    if (wantTheater === hasTheater) return;
     applyTheater();
   }
 
@@ -355,7 +235,42 @@
         transform: getComputedStyle(video).transform,
         opacity: getComputedStyle(video).opacity,
         visibility: getComputedStyle(video).visibility,
+        display: getComputedStyle(video).display,
+        filter: getComputedStyle(video).filter,
+        pointerEvents: getComputedStyle(video).pointerEvents,
       },
+      dimAncestors: (() => {
+        if (!video) return [];
+        const bad = [];
+        let n = video;
+        let depth = 0;
+        while (n && n.nodeType === 1 && depth < 24) {
+          const s = getComputedStyle(n);
+          const opacity = Number(s.opacity);
+          const filter = s.filter || "none";
+          const vis = s.visibility;
+          const display = s.display;
+          if (
+            opacity < 0.99 ||
+            (filter && filter !== "none") ||
+            vis === "hidden" ||
+            vis === "collapse" ||
+            display === "none"
+          ) {
+            bad.push({
+              tag: n.tagName,
+              cls: String(n.className || "").slice(0, 80),
+              opacity,
+              filter,
+              visibility: vis,
+              display,
+            });
+          }
+          n = n.parentElement;
+          depth += 1;
+        }
+        return bad;
+      })(),
     };
   };
 

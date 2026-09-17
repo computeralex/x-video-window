@@ -1,7 +1,6 @@
 /* Hide X chrome so the post / video is the focus. Auth flows are left alone in JS.
-   New X (2026) dropped many data-testids; also target Tailwind aspect-video boxes.
-   html.xvw-theater is set from the guest preload on watch paths so first paint
-   is already cinema, not a scrolling status post. */
+   Theater must never restyle <video> or its ancestors (width/flex/transform/
+   filter/opacity). Mac Electron's media layer freezes or dims when we do. */
 
 header[role="banner"] {
   display: none !important;
@@ -32,7 +31,6 @@ main[role="main"] {
   max-width: 100% !important;
 }
 
-/* Sticky "Post" header on status pages */
 [data-testid="primaryColumn"] [data-testid="ScrollSnap-Accessibility-Target"] {
   top: 0 !important;
 }
@@ -54,15 +52,14 @@ video {
   outline: none !important;
 }
 
-/* Hide post chrome only. Never pin, restyle, or restack the player —
-   position:fixed / transform / filter / isolate stacking on a video
-   ancestor blanks Chromium's media layer (especially on Mac). */
+/* Known tweet chrome only. :not(:has(video)) so we never display:none a
+   player ancestor. Do not set width/flex/overflow on layout boxes that
+   wrap <video>. */
 html.xvw-theater aside:not(:has(video)),
 html.xvw-theater nav:not(:has(video)),
 html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
 html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
 html.xvw-theater [class*="xlarge:flex"]:not(:has(video)),
-html.xvw-theater [class*="layout-width-two-column"] > :not(:has(video)),
 html.xvw-theater [class*="layout-width-two-column"] ~ :not(:has(video)),
 html.xvw-theater [data-testid="sidebarColumn"]:not(:has(video)),
 html.xvw-theater [data-testid="BottomBar"],
@@ -70,7 +67,7 @@ html.xvw-theater [data-testid="inlinePrompt"],
 html.xvw-theater [data-testid="tweetButtonInline"],
 html.xvw-theater [data-testid="cellInnerDiv"]:nth-child(n + 2):not(:has(video)),
 html.xvw-theater [aria-label="Timeline: Conversation"] > div > div > div:nth-child(n + 2):not(:has(video)),
-html.xvw-theater [data-testid="tweetText"],
+html.xvw-theater [data-testid="tweetText"]:not(:has(video)),
 html.xvw-theater [data-testid="User-Name"],
 html.xvw-theater [data-testid="caret"],
 html.xvw-theater [data-testid^="UserAvatar-Container"],
@@ -84,28 +81,16 @@ html.xvw-theater button[aria-label*="Bookmark" i],
 html.xvw-theater button[aria-label*="Share" i],
 html.xvw-theater button[aria-label="Back"],
 html.xvw-theater a[aria-label="Back"],
-html.xvw-theater h2,
+html.xvw-theater h2:not(:has(video)),
 html.xvw-theater [aria-label="View count"],
 html.xvw-theater [aria-label="See all the replies"],
 html.xvw-theater [aria-label*="Post your reply" i],
 html.xvw-theater [href$="/analytics"],
-html.xvw-theater [href$="/quotes"],
-html.xvw-theater .xvw-hide-chrome {
+html.xvw-theater [href$="/quotes"] {
   display: none !important;
 }
 
 html.xvw-theater {
-  --layout-width-two-column: 100vw;
-  --layout-width-primary: 100vw;
   --layout-width-right: 0px;
   --layout-min-right: 0px;
-}
-
-html.xvw-theater [class*="layout-width-two-column"],
-html.xvw-theater [class*="layout-width-primary"],
-html.xvw-theater [class*="max-w-[600px]"],
-html.xvw-theater main[role="main"] {
-  max-width: none !important;
-  width: 100% !important;
-  flex: 1 1 auto !important;
 }

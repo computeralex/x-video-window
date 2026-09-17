@@ -28,6 +28,50 @@ function isWatchPath(pathname) {
   );
 }
 
+// Selector-only: never restyle <video> or its ancestors (width/flex/
+// opacity/filter). Rewriting this stylesheet on every mutation was enough
+// to freeze Mac Electron's media layer.
+const THEATER_CSS = `
+html.xvw-theater aside:not(:has(video)),
+html.xvw-theater nav:not(:has(video)),
+html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
+html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
+html.xvw-theater [class*="xlarge:flex"]:not(:has(video)),
+html.xvw-theater [class*="layout-width-two-column"] ~ :not(:has(video)),
+html.xvw-theater [data-testid="sidebarColumn"]:not(:has(video)),
+html.xvw-theater [data-testid="BottomBar"],
+html.xvw-theater [data-testid="inlinePrompt"],
+html.xvw-theater [data-testid="tweetButtonInline"],
+html.xvw-theater [data-testid="cellInnerDiv"]:nth-child(n + 2):not(:has(video)),
+html.xvw-theater [aria-label="Timeline: Conversation"] > div > div > div:nth-child(n + 2):not(:has(video)),
+html.xvw-theater [data-testid="tweetText"]:not(:has(video)),
+html.xvw-theater [data-testid="User-Name"],
+html.xvw-theater [data-testid="caret"],
+html.xvw-theater [data-testid^="UserAvatar-Container"],
+html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
+html.xvw-theater button[aria-label="Follow"],
+html.xvw-theater button[aria-label="Following"],
+html.xvw-theater button[aria-label*="Reply" i],
+html.xvw-theater button[aria-label*="Repost" i],
+html.xvw-theater button[aria-label*="Like" i],
+html.xvw-theater button[aria-label*="Bookmark" i],
+html.xvw-theater button[aria-label*="Share" i],
+html.xvw-theater button[aria-label="Back"],
+html.xvw-theater a[aria-label="Back"],
+html.xvw-theater h2:not(:has(video)),
+html.xvw-theater [aria-label="View count"],
+html.xvw-theater [aria-label="See all the replies"],
+html.xvw-theater [aria-label*="Post your reply" i],
+html.xvw-theater [href$="/analytics"],
+html.xvw-theater [href$="/quotes"] {
+  display: none !important;
+}
+html.xvw-theater {
+  --layout-width-right: 0px;
+  --layout-min-right: 0px;
+}
+`;
+
 function ensureEarlyCinema() {
   if (typeof location === "undefined") return;
   if (isAuthPath(location.pathname)) {
@@ -50,47 +94,7 @@ function ensureEarlyCinema() {
     style.id = EARLY_STYLE_ID;
     (document.head || document.documentElement).appendChild(style);
   }
-  style.textContent = `
-    html.xvw-theater aside:not(:has(video)),
-    html.xvw-theater nav:not(:has(video)),
-    html.xvw-theater [class*="layout-width-right"]:not(:has(video)),
-    html.xvw-theater [class*="layout-width-rail"]:not(:has(video)),
-    html.xvw-theater [class*="xlarge:flex"]:not(:has(video)),
-    html.xvw-theater [class*="layout-width-two-column"] > :not(:has(video)),
-    html.xvw-theater [class*="layout-width-two-column"] ~ :not(:has(video)),
-    html.xvw-theater [class*="font-chirp"][class*="whitespace-pre-wrap"],
-    html.xvw-theater [data-testid="tweetText"],
-    html.xvw-theater button[aria-label="Follow"],
-    html.xvw-theater button[aria-label="Following"],
-    html.xvw-theater button[aria-label*="Reply" i],
-    html.xvw-theater button[aria-label*="Repost" i],
-    html.xvw-theater button[aria-label*="Like" i],
-    html.xvw-theater button[aria-label*="Bookmark" i],
-    html.xvw-theater button[aria-label*="Share" i],
-    html.xvw-theater button[aria-label="Back"],
-    html.xvw-theater a[aria-label="Back"],
-    html.xvw-theater h2,
-    html.xvw-theater [aria-label="View count"],
-    html.xvw-theater [aria-label="See all the replies"],
-    html.xvw-theater [aria-label*="Post your reply" i],
-    html.xvw-theater [href$="/quotes"] {
-      display: none !important;
-    }
-    html.xvw-theater {
-      --layout-width-two-column: 100vw;
-      --layout-width-primary: 100vw;
-      --layout-width-right: 0px;
-      --layout-min-right: 0px;
-    }
-    html.xvw-theater [class*="layout-width-two-column"],
-    html.xvw-theater [class*="layout-width-primary"],
-    html.xvw-theater [class*="max-w-[600px]"],
-    html.xvw-theater main[role="main"] {
-      max-width: none !important;
-      width: 100% !important;
-      flex: 1 1 auto !important;
-    }
-  `;
+  if (style.textContent !== THEATER_CSS) style.textContent = THEATER_CSS;
 }
 
 function ping() {
